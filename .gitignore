@@ -1,0 +1,13 @@
+
+.metadata
+R.java
+
+*.so
+bin
+
+.settings
+
+
+*.keystore
+gen
+obj
