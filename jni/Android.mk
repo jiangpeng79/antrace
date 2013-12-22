@@ -3,6 +3,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_CFLAGS := -fvisibility=hidden
 LOCAL_LDLIBS:= -llog
+LOCAL_LDFLAGS += -ljnigraphics
 LOCAL_MODULE    := antrace
 LOCAL_SRC_FILES := potrace/backend_dxf.c
 LOCAL_SRC_FILES += potrace/backend_eps.c
@@ -27,5 +28,6 @@ LOCAL_SRC_FILES += potrace/trace.c
 LOCAL_SRC_FILES += potrace/trans.c
 LOCAL_SRC_FILES += potrace/bbox.c
 LOCAL_SRC_FILES += potrace/main.c
+LOCAL_SRC_FILES += antrace.cpp
 
 include $(BUILD_SHARED_LIBRARY)
