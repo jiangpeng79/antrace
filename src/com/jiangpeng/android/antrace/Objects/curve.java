@@ -1,7 +1,7 @@
 package com.jiangpeng.android.antrace.Objects;
 
 public class curve {
-	int n;
-	int[] tag;
-	dpoint[][] c;
+	public int n;
+	public int[] tag;
+	public dpoint[][] c;
 }
