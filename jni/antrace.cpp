@@ -22,6 +22,7 @@
 #include "potrace/auxiliary.h"
 #include "potrace/progress_bar.h"
 #include "potrace/trans.h"
+#include "potrace/curve.h"
 #include <android/bitmap.h>
 #include <android/log.h>
 #define LOG_TAG "libbitmaputils"
@@ -35,6 +36,77 @@ union pixel32_t {
 };
 
 typedef union pixel32_t pixel32_t;
+
+jobject createPoint(JNIEnv* env, point_s* pt)
+{
+	jobject ret;
+	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/point");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "void(V)");
+	ret = env->NewObject(cls, constructor);
+
+	jfieldID fid = env->GetFieldID(cls, "x", "L");
+	env->SetLongField(ret, fid, pt->x);
+
+	fid = env->GetFieldID(cls, "y", "L");
+	env->SetLongField(ret, fid, pt->y);
+	return ret;
+}
+
+/*
+jobject createiPoint(JNIEnv* env, ipoint_t* pt)
+{
+	jobject ret;
+	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/ipoint");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "void(V)");
+	ret = env->NewObject(cls, constructor);
+
+	jfieldID fid = env->GetFieldID(cls, "x", "I");
+	env->SetIntField(ret, fid, pt->x);
+
+	fid = env->GetFieldID(cls, "y", "I");
+	env->SetIntField(ret, fid, pt->y);
+	return ret;
+}
+*/
+
+jobject createdPoint(JNIEnv* env, dpoint_t* pt)
+{
+	jobject ret;
+	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/dpoint");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "void(V)");
+	ret = env->NewObject(cls, constructor);
+
+	jfieldID fid = env->GetFieldID(cls, "x", "D");
+	env->SetDoubleField(ret, fid, pt->x);
+
+	fid = env->GetFieldID(cls, "y", "D");
+	env->SetDoubleField(ret, fid, pt->y);
+	return ret;
+}
+
+jobject createSums(JNIEnv* env, sums_t* s)
+{
+	jobject ret;
+	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/sums");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "void(V)");
+	ret = env->NewObject(cls, constructor);
+
+	jfieldID fid = env->GetFieldID(cls, "x", "I");
+	env->SetIntField(ret, fid, s->x);
+
+	fid = env->GetFieldID(cls, "y", "I");
+	env->SetIntField(ret, fid, s->y);
+
+	fid = env->GetFieldID(cls, "xy", "I");
+	env->SetIntField(ret, fid, s->xy);
+
+	fid = env->GetFieldID(cls, "x2", "I");
+	env->SetIntField(ret, fid, s->x2);
+
+	fid = env->GetFieldID(cls, "y2", "I");
+	env->SetIntField(ret, fid, s->y2);
+	return ret;
+}
 
 JNIEXPORT void JNICALL
 Java_com_jiangpeng_android_antrace_Utils_process( JNIEnv* env, jobject thiz, jobject bitmap, jobject input )
