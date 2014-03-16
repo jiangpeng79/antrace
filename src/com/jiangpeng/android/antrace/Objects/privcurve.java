@@ -13,4 +13,8 @@ public class privcurve {
 	public double[] alpha;    /* only for POTRACE_CURVETO */
 	public double[] alpha0;   /* "uncropped" alpha parameter - for debug output only */
 	public double[] beta;
+
+	public privcurve()
+	{
+	}
 }

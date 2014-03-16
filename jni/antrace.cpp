@@ -36,12 +36,14 @@ union pixel32_t {
 };
 
 typedef union pixel32_t pixel32_t;
+potrace_state_t* s_state = NULL;
 
+/*
 jobject createPoint(JNIEnv* env, point_s* pt)
 {
 	jobject ret;
 	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/point");
-	jmethodID constructor = env->GetMethodID(cls, "<init>", "void(V)");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
 	ret = env->NewObject(cls, constructor);
 
 	jfieldID fid = env->GetFieldID(cls, "x", "L");
@@ -52,7 +54,6 @@ jobject createPoint(JNIEnv* env, point_s* pt)
 	return ret;
 }
 
-/*
 jobject createiPoint(JNIEnv* env, ipoint_t* pt)
 {
 	jobject ret;
@@ -73,7 +74,7 @@ jobject createdPoint(JNIEnv* env, dpoint_t* pt)
 {
 	jobject ret;
 	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/dpoint");
-	jmethodID constructor = env->GetMethodID(cls, "<init>", "void(V)");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
 	ret = env->NewObject(cls, constructor);
 
 	jfieldID fid = env->GetFieldID(cls, "x", "D");
@@ -84,11 +85,27 @@ jobject createdPoint(JNIEnv* env, dpoint_t* pt)
 	return ret;
 }
 
+/*
+jobject createDummyDPoint(JNIEnv* env)
+{
+	jobject ret;
+	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/dpoint");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
+	ret = env->NewObject(cls, constructor);
+
+	jfieldID fid = env->GetFieldID(cls, "x", "D");
+	env->SetDoubleField(ret, fid, 0.0);
+
+	fid = env->GetFieldID(cls, "y", "D");
+	env->SetDoubleField(ret, fid, 0.0);
+	return ret;
+}
+
 jobject createSums(JNIEnv* env, sums_t* s)
 {
 	jobject ret;
 	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/sums");
-	jmethodID constructor = env->GetMethodID(cls, "<init>", "void(V)");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
 	ret = env->NewObject(cls, constructor);
 
 	jfieldID fid = env->GetFieldID(cls, "x", "I");
@@ -108,29 +125,172 @@ jobject createSums(JNIEnv* env, sums_t* s)
 	return ret;
 }
 
-JNIEXPORT void JNICALL
-Java_com_jiangpeng_android_antrace_Utils_process( JNIEnv* env, jobject thiz, jobject bitmap, jobject input )
+jobject createprevCurve(JNIEnv* env, privcurve_t* c)
+{
+	jobject ret;
+	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/privcurve");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
+	ret = env->NewObject(cls, constructor);
+
+	jfieldID fid = env->GetFieldID(cls, "n", "I");
+	env->SetIntField(ret, fid, c->n);
+
+	jintArray tags = env->NewIntArray(c->n);
+	/*
+	//jint* ia = new jint[c->n];
+	//for(int i = 0; i < c->n; ++c->n)
+	//{
+	//	ia[i] = c->tag[i];
+	//}
+	env->SetIntArrayRegion(tags, 0, c->n, ia);
+	delete[] ia;
+	env->SetIntArrayRegion(tags, 0, c->n, c->tag);
+	fid = env->GetFieldID(cls, "tag", "[I");
+	env->SetObjectField(ret, fid, tags);
+
+	cls = env->FindClass("com/jiangpeng/android/antrace/Objects/dpoint");
+//	jobject newDPt = createDummyDPoint(env);
+//	jobjectArray initarr = env->NewObjectArray(3, cls, newDPt);
+	jobjectArray arr = env->NewObjectArray(c->n, env->FindClass("[Ljava/lang/Object;"), 0);
+	for(int i = 0; i < c->n; ++i)
+	{
+		jobjectArray ptarr = env->NewObjectArray(3, cls, 0);
+		for(int j = 0; j < 3; ++j)
+		{
+			jobject pt = createdPoint(env, &c->c[i][j]);
+			env->SetObjectArrayElement(ptarr, j, pt);
+		}
+		env->SetObjectArrayElement(arr, i, ptarr);
+	}
+	fid = env->GetFieldID(cls, "c", "[[O");
+	env->SetObjectField(ret, fid, arr);
+
+	fid = env->GetFieldID(cls, "alphacurve", "I");
+	env->SetIntField(ret, fid, c->alphacurve);
+	int hasAlpha = c->alphacurve;
+	if(hasAlpha)
+	{
+		cls = env->FindClass("com/jiangpeng/android/antrace/Objects/dpoint");
+		jobjectArray arr = env->NewObjectArray(c->n, env->FindClass("[Ljava/lang/Object;"), 0);
+		for(int i = 0; i < c->n; ++i)
+		{
+			jobject pt = createdPoint(env, &c->vertex[i]);
+			env->SetObjectArrayElement(arr, i, pt);
+		}
+
+		fid = env->GetFieldID(cls, "vertex", "[O");
+		env->SetObjectField(ret, fid, arr);
+
+		jdoubleArray alpha = env->NewDoubleArray(c->n);
+		env->SetDoubleArrayRegion(alpha, 0, c->n, c->alpha);
+		fid = env->GetFieldID(cls, "alpha", "[D");
+		env->SetObjectField(ret, fid, alpha);
+
+		jdoubleArray alpha0 = env->NewDoubleArray(c->n);
+		env->SetDoubleArrayRegion(alpha0, 0, c->n, c->alpha0);
+		fid = env->GetFieldID(cls, "alpha0", "[D");
+		env->SetObjectField(ret, fid, alpha0);
+
+		jdoubleArray beta = env->NewDoubleArray(c->n);
+		env->SetDoubleArrayRegion(beta, 0, c->n, c->beta);
+		fid = env->GetFieldID(cls, "beta", "[D");
+		env->SetObjectField(ret, fid, beta);
+	}
+	return ret;
+}
+*/
+
+jobject createCurve(JNIEnv* env, potrace_curve_t* c)
+{
+	jobject ret;
+	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/curve");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
+	ret = env->NewObject(cls, constructor);
+
+	jfieldID fid = env->GetFieldID(cls, "n", "I");
+	env->SetIntField(ret, fid, c->n);
+
+	jintArray tags = env->NewIntArray(c->n);
+	jint* ia = new jint[c->n];
+	for(int i = 0; i < c->n; ++i)
+	{
+		ia[i] = c->tag[i];
+	}
+	env->SetIntArrayRegion(tags, 0, c->n, ia);
+	delete[] ia;
+
+	fid = env->GetFieldID(cls, "tag", "[I");
+	env->SetObjectField(ret, fid, tags);
+	
+	cls = env->FindClass("com/jiangpeng/android/antrace/Objects/dpoint");
+//	jobject newDPt = createDummyDPoint(env);
+//	jobjectArray initarr = env->NewObjectArray(3, cls, newDPt);
+	jobjectArray arr = env->NewObjectArray(c->n, env->FindClass("[Ljava/lang/Object;"), 0);
+	for(int i = 0; i < c->n; ++i)
+	{
+		jobjectArray ptarr = env->NewObjectArray(3, cls, 0);
+		for(int j = 0; j < 3; ++j)
+		{
+			jobject pt = createdPoint(env, &c->c[i][j]);
+			env->SetObjectArrayElement(ptarr, j, pt);
+		}
+		env->SetObjectArrayElement(arr, i, ptarr);
+	}
+	cls = env->FindClass("com/jiangpeng/android/antrace/Objects/curve");
+	fid = env->GetFieldID(cls, "c", "[[Lcom/jiangpeng/android/antrace/Objects/dpoint;");
+	env->SetObjectField(ret, fid, arr);
+	return ret;
+}
+
+jobject createPath(JNIEnv* env, potrace_path_t* path, jobject parent)
+{
+	jobject ret = 0;
+	jclass cls = env->FindClass("com/jiangpeng/android/antrace/Objects/path");
+	jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
+	ret = env->NewObject(cls, constructor);
+
+	if(parent != 0)
+	{
+		jfieldID fid = env->GetFieldID(cls, "next", "L");
+		env->SetObjectField(parent, fid, ret);
+	}
+
+	potrace_curve_t *curve = &path->curve;
+	jobject jcurve = createCurve(env, curve);
+
+	jfieldID fid = env->GetFieldID(cls, "curve", "L");
+	env->SetObjectField(ret, fid, jcurve);
+
+	if(path->next != NULL)
+	{
+		createPath(env, path->next, ret);
+	}
+	return ret;
+}
+
+JNIEXPORT jobject JNICALL
+Java_com_jiangpeng_android_antrace_Utils_traceImage( JNIEnv* env, jobject thiz, jobject bitmap)
 {
 	AndroidBitmapInfo info;
 	int ret = 0;
 	void* src_pixels = 0;
-	void* dst_pixels = 0;
 
-	if ((ret = AndroidBitmap_getInfo(env, input, &info)) < 0) {
-		return;
+	if ((ret = AndroidBitmap_getInfo(env, bitmap, &info)) < 0) {
+		return NULL;
 	}
 
 	if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
-		return;
+		return NULL;
 	}
-	if ((ret = AndroidBitmap_lockPixels(env, input, &src_pixels)) < 0) {
+	if ((ret = AndroidBitmap_lockPixels(env, bitmap, &src_pixels)) < 0) {
+		return NULL;
 	}
 
 	potrace_param_t* param_t = potrace_param_default();
 	potrace_bitmap_t* bmp_t = bm_new(info.width, info.height);
-	bm_clear(bmp_t, 0);
-	dst_pixels = bmp_t->map;
+	memcpy(bmp_t->map, src_pixels, bmp_t->dy * bmp_t->h * BM_WORDSIZE);
 
+	/*
 	const int kShiftBits = 20;
 	const int32_t kRedRatio = static_cast<int32_t>((1 << kShiftBits) * 0.21f);
 	const int32_t kGreenRatio = static_cast<int32_t>((1 << kShiftBits) * 0.71f);
@@ -161,10 +321,91 @@ Java_com_jiangpeng_android_antrace_Utils_process( JNIEnv* env, jobject thiz, job
 	    dst_pixels = reinterpret_cast<char*>(dst_pixels) + bmp_t->dy;
 	    src_pixels = reinterpret_cast<char*>(src_pixels) + info.stride;
 	}
+	*/
 	potrace_state_t* state = potrace_trace(param_t, bmp_t);
 	potrace_param_free(param_t);
 	bm_free(bmp_t);
 
-	AndroidBitmap_unlockPixels(env, input);
+	AndroidBitmap_unlockPixels(env, bitmap);
+
+    if (!state || state->status != POTRACE_STATUS_OK) {
+    	return NULL;
+    }
+	jobject p = createPath(env, state->plist, NULL);
+    potrace_state_free(state);
+
+	return p;
 }
+
+JNIEXPORT void JNICALL
+Java_com_jiangpeng_android_antrace_Utils_threshold( JNIEnv* env, jobject thiz, jobject input, jobject output )
+{
+	AndroidBitmapInfo inputInfo;
+	AndroidBitmapInfo outputInfo;
+	int ret = 0;
+	void* src_pixels = 0;
+	void* dst_pixels = 0;
+
+	if ((ret = AndroidBitmap_getInfo(env, input, &inputInfo)) < 0) {
+		return;
+	}
+
+	if (inputInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+		return;
+	}
+	if ((ret = AndroidBitmap_lockPixels(env, input, &src_pixels)) < 0) {
+		return;
+	}
+
+	if ((ret = AndroidBitmap_getInfo(env, output, &outputInfo)) < 0) {
+		return;
+	}
+
+	if (outputInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+		return;
+	}
+	if ((ret = AndroidBitmap_lockPixels(env, output, &dst_pixels)) < 0) {
+		return;
+	}
+
+	const int kShiftBits = 20;
+	const int32_t kRedRatio = static_cast<int32_t>((1 << kShiftBits) * 0.21f);
+	const int32_t kGreenRatio = static_cast<int32_t>((1 << kShiftBits) * 0.71f);
+	const int32_t kBlueRatio = static_cast<int32_t>((1 << kShiftBits) * 0.07f);
+	for (uint32_t scan_line = 0; scan_line < outputInfo.height; scan_line++) {
+	    uint32_t* dst = reinterpret_cast<uint32_t*>(dst_pixels);
+	    pixel32_t* src = reinterpret_cast<pixel32_t*>(src_pixels);
+	    pixel32_t* src_line_end = src + inputInfo.width;
+	    while (src < src_line_end) {
+	    	int32_t src_red = src->rgba8[0];
+	    	int32_t src_green = src->rgba8[1];
+	    	int32_t src_blue = src->rgba8[2];
+	    	int32_t src_alpha = src->rgba8[3];
+
+	    	int32_t dst_color = (kRedRatio * src_red + kGreenRatio * src_green +
+	    			kBlueRatio * src_blue) >> kShiftBits;
+	    	if (dst_color > 128) {
+	    		dst_color = 255;
+	    	}
+	    	else
+	    	{
+	    		dst_color = 0;
+	    	}
+	    	*dst = (src_alpha << 24) | (dst_color << 16) | (dst_color << 8) | dst_color;
+	    	dst++;
+	    	src++;
+	    }
+	    dst_pixels = reinterpret_cast<char*>(dst_pixels) + outputInfo.stride;
+	    src_pixels = reinterpret_cast<char*>(src_pixels) + inputInfo.stride;
+	}
+
+	AndroidBitmap_unlockPixels(env, input);
+	AndroidBitmap_unlockPixels(env, output);
+}
+
+JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_saveSVG(JNIEnv * env, jobject jobj, jstring path)
+{
+    char const * filepath = env->GetStringUTFChars(path , NULL);
+}
+
 }

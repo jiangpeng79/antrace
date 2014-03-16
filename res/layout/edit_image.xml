@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent"
+  android:orientation="vertical">
+  <LinearLayout android:id="@+id/buttonsLayout" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" android:weightSum="2">
+      <Button
+          android:id="@+id/okButton"
+          android:layout_width="fill_parent"
+          android:layout_height="wrap_content"
+          android:text="@android:string/ok"
+          android:textSize="12sp"
+          android:layout_weight="1.0" />
+      <Button
+          android:id="@+id/cancelButton"
+          android:layout_width="fill_parent"
+          android:layout_height="wrap_content"
+          android:text="@android:string/cancel"
+          android:textSize="12sp"
+          android:layout_weight="1.0" />
+    </LinearLayout>
+  <com.jiangpeng.android.antrace.PreviewImageView android:id="@+id/previewImageView" 
+    android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_above="@id/buttonsLayout"/>
+</RelativeLayout>

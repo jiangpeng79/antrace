@@ -11,4 +11,8 @@ public class path {
 	public path sibling;   /* tree structure */
 
 	public privpath priv;  /* private state */
+
+	public path()
+	{
+	}
 }

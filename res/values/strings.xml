@@ -7,4 +7,7 @@
     <string name="take_a_photo">Take a photo</string>
     <string name="select_a_photo">Select a photo</string>
     <string name="about">About</string>  
+    <string name="empty"></string>
+    <string name="loading">Loading..</string>
+    <string name="check_your_files">Failed loading, file is corrupt or out of memory!\nPlease try again</string>
 </resources>

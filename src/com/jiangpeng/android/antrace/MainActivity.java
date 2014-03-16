@@ -134,9 +134,17 @@ public class MainActivity extends Activity {
             cursor.close();
             
             m_photoFile = filePath;
+            launchPreviewActivity(m_photoFile);
         }
         super.onActivityResult(requestCode, resultCode, intent);
 	}
+	
+	protected void launchPreviewActivity(String filename) {
+		Intent i = new Intent();	    
+		i.setClass(MainActivity.this, PreviewActivity.class);
+	    i.putExtra(PreviewActivity.FILENAME, filename);
+	    startActivityForResult(i, EDIT_IMAGE_CODE);
 
+	}
 
 }

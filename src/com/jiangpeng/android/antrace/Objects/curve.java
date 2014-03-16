@@ -4,4 +4,7 @@ public class curve {
 	public int n;
 	public int[] tag;
 	public dpoint[][] c;
+	public curve()
+	{
+	}
 }
