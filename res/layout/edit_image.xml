@@ -20,6 +20,31 @@
           android:textSize="12sp"
           android:layout_weight="1.0" />
     </LinearLayout>
+
+  <LinearLayout
+      android:id="@+id/sliderLayout"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_above="@id/buttonsLayout"
+      android:orientation="vertical" >
+
+      <SeekBar
+          android:id="@+id/thresholdSeek"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:max="255"
+          android:progress="127" />
+
+    </LinearLayout>
   <com.jiangpeng.android.antrace.PreviewImageView android:id="@+id/previewImageView" 
-    android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_above="@id/buttonsLayout"/>
+    android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_above="@id/sliderLayout"/>
+
+  <ProgressBar
+      android:id="@+id/thresholdProgress"
+      style="?android:attr/progressBarStyleLarge"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_centerInParent="true"
+      />
+
 </RelativeLayout>

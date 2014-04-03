@@ -1,8 +1,6 @@
 package com.jiangpeng.android.antrace;
 
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 
 public class ImageUtils {
 	public static double epsilon = 1e-6;
@@ -66,7 +64,7 @@ public class ImageUtils {
         return roundedSize;
     }
 
-    private static int computeInitialSampleSize(BitmapFactory.Options options,
+    public static int computeInitialSampleSize(BitmapFactory.Options options,
             int minSideLength, int maxNumOfPixels)
     {
         double w = options.outWidth;
