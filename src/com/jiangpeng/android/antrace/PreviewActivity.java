@@ -2,30 +2,17 @@ package com.jiangpeng.android.antrace;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
 import com.jiangpeng.android.antrace.Objects.path;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.PointF;
-import android.graphics.Rect;
-import android.graphics.RectF;
-import android.media.FaceDetector;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -38,8 +25,10 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.ProgressBar;
+import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.Toast;
@@ -60,12 +49,14 @@ public class PreviewActivity extends Activity {
 	private ProgressBar m_progressBar = null;
     public static int CODE_SHARE_IMAGE = 1115;
     public static String FILENAME = "FILENAME";
-    private String m_photoFile = "/sdcard/__WatermarkMargin_tmp";
     public static int STATE_START = 0;
     public static int STATE_LOADED = 1;
     public static int STATE_MONO = 2;
     public static int STATE_TRACE = 3;
     public static int STATE_SAVE = 4;
+    
+    public static int TYPE_SVG = 1;
+    public static int TYPE_DXF = 2;
     private int m_state = STATE_START;
 	
     static {
@@ -79,7 +70,6 @@ public class PreviewActivity extends Activity {
         
         m_imageView = (PreviewImageView)findViewById(R.id.previewImageView);
         m_filename = this.getIntent().getStringExtra(PreviewActivity.FILENAME);
-        m_photoFile = FileUtils.getRootFolder() + FileUtils.sep + MainActivity.TEMP_FOLDER + FileUtils.sep + MainActivity.PHOTO_FILE_TEMP_;
 		FileUtils.checkAndCreateFolder(FileUtils.getRootFolder() + FileUtils.sep + MainActivity.TEMP_FOLDER);
        	m_progress = ProgressDialog.show(this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 		Thread t = new Thread(new LoadImageThread());
@@ -133,6 +123,11 @@ public class PreviewActivity extends Activity {
 				m_ok.setText("Save");
 				return;
 			}
+			if(m_state == STATE_TRACE)
+			{
+				showSaveDialog();
+				return;
+			}
 		}
 	};
 	
@@ -156,7 +151,6 @@ public class PreviewActivity extends Activity {
             }
             else
             {
-            	int v = msg.what;
                 Bitmap bmp = (Bitmap)msg.obj;
                 m_mono = bmp;
                 m_imageView.setImage(m_mono);
@@ -219,6 +213,60 @@ public class PreviewActivity extends Activity {
 		}
 	}
 
+	private void showSaveDialog()
+	{
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		View view = getLayoutInflater().inflate(R.layout.save_file, null);
+		final EditText nameEdit = (EditText)view.findViewById(R.id.filenameEdit);
+		final RadioGroup typeRadio = (RadioGroup)view.findViewById(R.id.typeGroup);
+		String name = "output.svg";
+		if(typeRadio.getCheckedRadioButtonId() == R.id.dxfRadio)
+		{
+			name = "output.dxf";
+		}
+		else if(typeRadio.getCheckedRadioButtonId() == R.id.svgRadio)
+		{
+			name = "output.svg";
+		}
+		String path = FileUtils.getRootFolder() + FileUtils.sep + name;
+		nameEdit.setText(path);
+		builder.setView(view);
+		builder.setTitle("Save to file");
+		builder.setIcon(android.R.drawable.ic_dialog_info);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            	String filename = nameEdit.getText().toString();
+            	int type = TYPE_SVG;
+            	if(typeRadio.getCheckedRadioButtonId() == R.id.dxfRadio)
+            	{
+            		type = TYPE_DXF;
+            	}
+            	else if(typeRadio.getCheckedRadioButtonId() == R.id.svgRadio)
+            	{
+            		type = TYPE_SVG;
+            	}
+                // a choice has been made!		
+        		dialog.dismiss();
+              	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
+        		Thread t = new Thread(new SaveFileThread(type, filename));
+        		t.start();
+        		return;
+            }
+        });
+        
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // a choice has been made!		
+        		dialog.dismiss();
+        		return;
+            }
+        });
+
+		AlertDialog dlg = builder.create();
+		dlg.show();
+	}
 
     private Handler m_handler = new Handler()
     {
@@ -244,6 +292,16 @@ public class PreviewActivity extends Activity {
         		else
         		{
         			m_imageView.setPath(p);
+        		}
+        		return;
+        	}
+        	if(m_state == STATE_TRACE)
+        	{
+        		Boolean ret = (Boolean)msg.obj;
+        		if(!ret)
+        		{
+        			Toast toast = Toast.makeText(PreviewActivity.this, "Save failed...", Toast.LENGTH_SHORT);
+        			toast.show();
         		}
         		return;
         	}
@@ -278,14 +336,33 @@ public class PreviewActivity extends Activity {
             		return;
             	}
             }
-            /*
-            if(m_state == STATE_START)
-            {
-                checkAndStartThreshold(127);
-            }
-            */
         }
     };
+
+	class SaveFileThread implements Runnable
+	{
+		int m_type = TYPE_SVG;
+		String m_name;
+		public SaveFileThread(int t, String n)
+		{
+			m_type = t;
+			m_name = n;
+		}
+		@Override
+		public void run() {
+			Boolean ret = true;
+			if(m_type == TYPE_DXF)
+			{
+				ret = Utils.saveDXF(m_name);
+			}
+			else if(m_type == TYPE_SVG)
+			{
+				ret = Utils.saveSVG(m_name);
+			}
+            Message msg = m_handler.obtainMessage(0, ret);
+            m_handler.sendMessage(msg);
+		}
+	};
 
 	class GrayscaleThread implements Runnable
 	{
@@ -381,24 +458,7 @@ public class PreviewActivity extends Activity {
     		{
     			bm = null;
     		}	
-    		/*
-    		if(bm != null)
-    		{
-    			m_gray = Bitmap.createBitmap(bm);
-    			Utils.grayScale(bm, m_gray);
-    		}
-    		*/
-    		/*
-    		m.reset();
-    		Bitmap bnw = Bitmap.createBitmap(bm);
-    		Utils.threshold(bm, 127, bnw);
-    		path p = Utils.traceImage(bnw);
-    		for(path n = p; n != null; n = n.next)
-    		{
-    			Log.v("potrace result", "Curve count on path: " + n.curve == null ? "0" : Integer.toString(n.curve.n));
-    		}
-            Message msg = m_handler.obtainMessage(0, bnw);
-    		*/
+    		
             Message msg = m_handler.obtainMessage(0, bm);
             m_handler.sendMessage(msg);
 		}
@@ -521,6 +581,7 @@ public class PreviewActivity extends Activity {
 			m_progress = null;
 		}
 		super.onDestroy();
+		Utils.clearState();
 	}
 
 }

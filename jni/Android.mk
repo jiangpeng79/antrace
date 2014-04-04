@@ -27,7 +27,6 @@ LOCAL_SRC_FILES += potrace/render.c
 LOCAL_SRC_FILES += potrace/trace.c
 LOCAL_SRC_FILES += potrace/trans.c
 LOCAL_SRC_FILES += potrace/bbox.c
-LOCAL_SRC_FILES += potrace/main.c
 LOCAL_SRC_FILES += antrace.cpp
 
 include $(BUILD_SHARED_LIBRARY)
