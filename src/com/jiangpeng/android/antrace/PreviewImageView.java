@@ -11,20 +11,58 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PointF;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.WindowManager;
+import android.view.View.OnTouchListener;
 import android.widget.ImageView;
 
 public class PreviewImageView extends ImageView {
+	public enum HitTestResult
+	{
+		Top,
+		Bottom,
+		Left,
+		Right,
+		TopLeft,
+		TopRight,
+		BottomLeft,
+		BottomRight,
+		Inside,
+		Outside,
+		None
+	};
+    // We can be in one of these 3 states
+    static final int NONE = 0;
+    static final int DRAG = 1;
+    static final int ZOOM = 2;
+    static final int ROTATE = 3;
+    static final int ZOOM_SELECTION = 4;
+    static final int DRAG_SELECTION = 5;
     private Matrix m_imageToScreen = new Matrix();
     private Matrix m_screenToImage = new Matrix();
     private Bitmap m_bitmap = null;
     private path m_path = null;
     private Paint m_paint = new Paint();
     private Path m_p = new Path();
-  
+    private boolean m_isCropping = false;
+    private PointF m_leftTop = new PointF();
+    private PointF m_rightTop = new PointF();
+    private PointF m_leftBottom = new PointF();
+    private PointF m_rightBottom = new PointF();
+    static float HitRadius = 40f;
+    static final float MinSize = 80f;
+    private int m_mode = NONE;
+    private HitTestResult m_hitTest = HitTestResult.None;
+
+    // Remember some things for zooming
+    private PointF m_start = new PointF();
+    private PointF m_last = new PointF();
     public boolean hasPath()
     {
     	return m_path != null;
@@ -33,7 +71,34 @@ public class PreviewImageView extends ImageView {
     public void setPath(path p)
     {
     	m_path = p;
-    	this.invalidate();
+    	invalidate();
+    }
+    
+    public void startCrop()
+    {
+    	m_isCropping = true;
+    	float w = (float)m_bitmap.getWidth();
+    	float h = (float)m_bitmap.getHeight();
+    	
+    	float div = 8.0f;
+    	PointF pt = new PointF(w / div, h / div);
+    	m_leftTop = toScreen(pt);
+
+    	pt = new PointF(w / div, h - h / div);
+    	m_leftBottom = toScreen(pt);
+
+    	pt = new PointF(w - w / div, h - h / div);
+    	m_rightBottom = toScreen(pt);
+
+    	pt = new PointF(w - w / div, h / div);
+    	m_rightTop = toScreen(pt);
+    	invalidate();
+    }
+    
+    public void endCrop()
+    {
+    	m_isCropping = false;
+    	invalidate();
     }
 
     private float calculateScale()
@@ -108,7 +173,6 @@ public class PreviewImageView extends ImageView {
     private void init(Context context)
     {
         super.setClickable(true);
-//        m_context = context;
         m_imageToScreen.setTranslate(1f, 1f);
         setImageMatrix(m_imageToScreen);
         setScaleType(ScaleType.MATRIX);
@@ -117,6 +181,7 @@ public class PreviewImageView extends ImageView {
 		m_paint.setStrokeCap(Paint.Cap.ROUND);
 		m_paint.setStrokeWidth(2.0f);
 		m_paint.setAntiAlias(true);
+        setOnTouchListener(m_touchListener);
     }
     
     public void setImage(Bitmap bm) { 
@@ -139,10 +204,32 @@ public class PreviewImageView extends ImageView {
     	return ret;
     }
 
-    @Override
-	protected void onDraw(Canvas canvas) {
-		super.onDraw(canvas);
+    private PointF toScreen(PointF pt)
+    {
+    	float[] input = new float[2];
+    	input[0] = pt.x;
+    	input[1] = pt.y;
+    	
+    	float[] ret = new float[2];
+    	m_imageToScreen.mapPoints(ret, input);
+    	PointF p = new PointF(ret[0], ret[1]);
+    	return p;
+    }
 
+    private PointF toBitmap(PointF pt)
+    {
+    	float[] input = new float[2];
+    	input[0] = pt.x;
+    	input[1] = pt.y;
+    	
+    	float[] ret = new float[2];
+    	m_screenToImage.mapPoints(ret, input);
+    	PointF p = new PointF(ret[0], ret[1]);
+    	return p;
+    }
+
+    private void drawPath(Canvas canvas)
+    {
 		if(m_path == null)
 		{
 			return;
@@ -191,7 +278,171 @@ public class PreviewImageView extends ImageView {
 				canvas.drawPath(m_p, m_paint);
 			}
 			next = next.next;
-			Log.v("NEXT CURVE", "NEXT CURVE");
+//			Log.v("NEXT CURVE", "NEXT CURVE");
+		}
+    }
+
+    @Override
+	protected void onDraw(Canvas canvas) {
+		super.onDraw(canvas);
+
+		if(m_path != null)
+		{
+			drawPath(canvas);
+			return;
+		}
+		
+		if(m_isCropping)
+		{
+			float[] pts = new float[16];
+			pts[0] = m_leftTop.x;
+			pts[1] = m_leftTop.y;
+			pts[2] = m_rightTop.x;
+			pts[3] = m_rightTop.y;
+
+			pts[4] = m_rightTop.x;
+			pts[5] = m_rightTop.y;
+			pts[6] = m_rightBottom.x;
+			pts[7] = m_rightBottom.y;
+
+			pts[8] = m_rightBottom.x;
+			pts[9] = m_rightBottom.y;
+			pts[10] = m_leftBottom.x;
+			pts[11] = m_leftBottom.y;
+
+			pts[12] = m_leftBottom.x;
+			pts[13] = m_leftBottom.y;
+			pts[14] = m_leftTop.x;
+			pts[15] = m_leftTop.y;
+
+			m_paint.setColor(Color.argb(255, 255, 255, 0));
+			m_paint.setStyle(Paint.Style.STROKE);
+			m_paint.setStrokeWidth(2.0f);
+			canvas.drawLines(pts, m_paint); 
+			
+			float radius = 8;
+			canvas.drawCircle(m_leftTop.x, m_leftTop.y, radius, m_paint);
+			canvas.drawCircle(m_rightTop.x, m_rightTop.y, radius, m_paint);
+			canvas.drawCircle(m_rightBottom.x, m_rightBottom.y, radius, m_paint);
+			canvas.drawCircle(m_leftBottom.x, m_leftBottom.y, radius, m_paint);
+			return;
 		}
 	}
+	private OnTouchListener m_touchListener = new OnTouchListener()
+    {
+		@Override
+		public boolean onTouch(View v, MotionEvent rawEvent) {
+            // Handle touch events here...
+            switch (rawEvent.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_DOWN:
+                m_start.set(rawEvent.getX(), rawEvent.getY());
+                m_last.set(rawEvent.getX(), rawEvent.getY());
+                m_hitTest = hitTest(rawEvent);
+                if(m_hitTest != HitTestResult.Outside)
+                {
+                	m_mode = DRAG_SELECTION;
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+            {
+                int xDiff = (int) Math.abs(rawEvent.getX() - m_start.x);
+                int yDiff = (int) Math.abs(rawEvent.getY() - m_start.y);
+                if (xDiff < 8 && yDiff < 8){
+                    performClick();
+                }
+            }
+            case MotionEvent.ACTION_POINTER_UP:
+                m_mode = NONE;
+                m_hitTest = HitTestResult.None;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if(m_mode == DRAG_SELECTION)
+                {
+                	if(m_hitTest == HitTestResult.TopLeft)
+                	{
+                		m_leftTop.x += rawEvent.getX() - m_last.x;
+                		m_leftTop.y += rawEvent.getY() - m_last.y;
+                	}
+
+                	if(m_hitTest == HitTestResult.TopRight)
+                	{
+                		m_rightTop.x += rawEvent.getX() - m_last.x;
+                		m_rightTop.y += rawEvent.getY() - m_last.y;
+                	}
+
+                	if(m_hitTest == HitTestResult.BottomLeft)
+                	{
+                		m_leftBottom.x += rawEvent.getX() - m_last.x;
+                		m_leftBottom.y += rawEvent.getY() - m_last.y;
+                	}
+
+                	if(m_hitTest == HitTestResult.BottomRight)
+                	{
+                		m_rightBottom.x += rawEvent.getX() - m_last.x;
+                		m_rightBottom.y += rawEvent.getY() - m_last.y;
+                	}
+                	m_last.set(rawEvent.getX(), rawEvent.getY());
+                }
+                break;
+            }
+           	invalidate();
+            return true; // indicate event was handled
+		}
+    };
+    
+    private HitTestResult hitTest(MotionEvent event)
+    {
+    	float x = event.getX();
+    	float y = event.getY();
+    	
+    	RectF area = generateRect(m_leftTop, HitRadius, HitRadius);
+    	if(area.contains(x, y))
+    	{
+    		return HitTestResult.TopLeft;
+    	}
+    	area = generateRect(m_rightBottom, HitRadius, HitRadius);
+    	if(area.contains(x, y))
+    	{
+    		return HitTestResult.BottomRight;
+    	}
+    	
+    	area = generateRect(m_leftBottom, HitRadius, HitRadius);
+    	if(area.contains(x, y))
+    	{
+    		return HitTestResult.BottomLeft;
+    	}
+    	
+    	area = generateRect(m_rightTop, HitRadius, HitRadius);
+    	if(area.contains(x, y))
+    	{
+    		return HitTestResult.TopRight;
+    	}
+   	
+    	return HitTestResult.Outside;
+    }
+    
+    private RectF generateRect(PointF center, float radiusX, float radiusY)
+    {
+    	return new RectF(center.x - radiusX / 2, center.y - radiusY / 2, center.x + radiusX / 2, center.y + radiusY / 2);
+    }
+    
+    public PointF getLeftTop()
+    {
+    	return toBitmap(m_leftTop);
+    }
+
+    public PointF getRightTop()
+    {
+    	return toBitmap(m_rightTop);
+    }
+
+    public PointF getRightBottom()
+    {
+    	return toBitmap(m_rightBottom);
+    }
+
+    public PointF getLeftBottom()
+    {
+    	return toBitmap(m_leftBottom);
+    }
 }

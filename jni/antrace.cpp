@@ -1340,12 +1340,12 @@ jobject createCurve(JNIEnv* env, potrace_curve_t* c)
 		env->SetObjectArrayElement(arr, i, ptarr);
 		env->DeleteLocalRef(ptarr);
 	}
-	env->DeleteLocalRef(crvcls);
-	env->DeleteLocalRef(dptcls);
 	fid = env->GetFieldID(crvcls, "c", "[[Lcom/jiangpeng/android/antrace/Objects/dpoint;");
 	env->SetObjectField(ret, fid, arr);
+	env->DeleteLocalRef(dptcls);
 	env->DeleteLocalRef(arr);
 	env->DeleteLocalRef(d1cls);
+	env->DeleteLocalRef(crvcls);
 	return ret;
 }
 
@@ -1387,14 +1387,13 @@ jobject createPath(JNIEnv* env, potrace_path_t* path)
 	jmethodID constructor = env->GetMethodID(cls, "<init>", "()V");
 	ret = env->NewObject(cls, constructor);
 
-	env->DeleteLocalRef(cls);
-
 	potrace_curve_t *curve = &path->curve;
 	jobject jcurve = createCurve(env, curve);
 
 	jfieldID fid = env->GetFieldID(cls, "curve", "Lcom/jiangpeng/android/antrace/Objects/curve;");
 	env->SetObjectField(ret, fid, jcurve);
 	env->DeleteLocalRef(jcurve);
+	env->DeleteLocalRef(cls);
 
 	return ret;
 }
@@ -1483,7 +1482,6 @@ JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_traceImage( J
     	prev = path;
     }
     env->DeleteLocalRef(cls);
-
 	return retPath;
 }
 
@@ -1619,14 +1617,63 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_grayScale( JNIEn
 	AndroidBitmap_unlockPixels(env, output);
 }
 
-JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_saveSVG(JNIEnv* env, jobject thiz, jstring path)
+JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveSVG(JNIEnv* env, jobject thiz, jstring path, int w, int h)
 {
     char const * filepath = env->GetStringUTFChars(path, NULL);
+    imginfo_t imginfo;
+    imginfo.pixwidth = w;
+    imginfo.pixheight = h;
+    backend_lookup("svg", &info.backend);
+    info.debug = 0;
+    info.width_d.x = UNDEF;
+    info.height_d.x = UNDEF;
+    info.rx = UNDEF;
+    info.ry = UNDEF;
+    info.sx = UNDEF;
+    info.sy = UNDEF;
+    info.stretch = 1;
+    info.lmar_d.x = UNDEF;
+    info.rmar_d.x = UNDEF;
+    info.tmar_d.x = UNDEF;
+    info.bmar_d.x = UNDEF;
+    info.angle = 0;
+    info.paperwidth = DEFAULT_PAPERWIDTH;
+    info.paperheight = DEFAULT_PAPERHEIGHT;
+    info.tight = 0;
+    info.unit = 10;
+    info.compress = 1;
+    info.pslevel = 2;
+    info.color = 0x000000;
+    info.gamma = 2.2;
+    info.param = potrace_param_default();
+    if (!info.param) {
+    	return JNI_FALSE;
+    }
+    info.longcoding = 0;
+    info.outfile = NULL;
+    info.blacklevel = 0.5;
+    info.invert = 0;
+    info.opaque = 0;
+    info.grouping = 1;
+    info.fillcolor = 0xffffff;
+    info.progress = 0;
+    info.progress_bar = DEFAULT_PROGRESS_BAR;
+    calc_dimensions(&imginfo, s_state->plist);
+    FILE* f = fopen(filepath,"w+");
+    if(f)
+    {
+    	page_svg(f, s_state->plist, &imginfo);
+    	fflush(f);
+    	fclose(f);
+    	return JNI_TRUE;
+    }
+    return JNI_FALSE;
 }
 
-JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_saveDXF(JNIEnv* env, jobject thiz, jstring path)
+JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveDXF(JNIEnv* env, jobject thiz, jstring path)
 {
     char const * filepath = env->GetStringUTFChars(path, NULL);
+    return JNI_TRUE;
 }
 
 JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_clearState(JNIEnv* env)

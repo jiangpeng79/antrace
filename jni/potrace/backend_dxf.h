@@ -8,8 +8,12 @@
 
 #include "potracelib.h"
 #include "main.h"
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 int page_dxf(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo);
-
+#ifdef  __cplusplus
+} /* end of extern "C" */
+#endif
 #endif /* BACKEND_DXF_H */
 

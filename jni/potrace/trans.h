@@ -7,7 +7,9 @@
 #define TRANS_H
 
 #include "auxiliary.h"
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 /* structure to hold a coordinate transformation */
 struct trans_s {
   double bb[2];    /* dimensions of bounding box */
@@ -33,4 +35,7 @@ void trans_rescale(trans_t *r, double sc);
 void trans_scale_to_size(trans_t *r, double w, double h);
 void trans_tighten(trans_t *r, potrace_path_t *plist);
 
+#ifdef  __cplusplus
+} /* end of extern "C" */
+#endif
 #endif /* TRANS_H */

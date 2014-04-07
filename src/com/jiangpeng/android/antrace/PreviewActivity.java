@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.PointF;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -51,9 +52,10 @@ public class PreviewActivity extends Activity {
     public static String FILENAME = "FILENAME";
     public static int STATE_START = 0;
     public static int STATE_LOADED = 1;
-    public static int STATE_MONO = 2;
-    public static int STATE_TRACE = 3;
-    public static int STATE_SAVE = 4;
+    public static int STATE_CROP = 2;
+    public static int STATE_MONO = 3;
+    public static int STATE_TRACE = 4;
+    public static int STATE_SAVE = 5;
     
     public static int TYPE_SVG = 1;
     public static int TYPE_DXF = 2;
@@ -108,9 +110,22 @@ public class PreviewActivity extends Activity {
 		public void onClick(View v) {
 			if(m_state == STATE_LOADED)
 			{
+				/*
 		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 				Thread t = new Thread(new GrayscaleThread());
 				t.start();
+				*/
+				m_ok.setText("Crop");
+				m_state = STATE_CROP;
+				m_imageView.startCrop();
+				return;
+			}
+			if(m_state == STATE_CROP)
+			{
+		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
+				Thread t = new Thread(new CropThread());
+				t.start();
+				m_imageView.endCrop();
 				m_ok.setText("Next");
 				return;
 			}
@@ -328,13 +343,22 @@ public class PreviewActivity extends Activity {
             		m_gray = bmp;
             		return;
             	}
-            	if(m_state == STATE_LOADED)
+            	if(m_state == STATE_CROP)
             	{
+            		m_gray = bmp;
             		m_thresholdSeek.setVisibility(View.VISIBLE);
             		checkAndStartThreshold(127);
             		m_state = STATE_MONO;
             		return;
             	}
+            	/*
+            	if(m_state == STATE_LOADED)
+            	{
+            		m_state = STATE_CROP;
+            		m_imageView.startCrop();
+            		return;
+            	}
+            	*/
             }
         }
     };
@@ -353,11 +377,11 @@ public class PreviewActivity extends Activity {
 			Boolean ret = true;
 			if(m_type == TYPE_DXF)
 			{
-				ret = Utils.saveDXF(m_name);
+				ret = Utils.saveDXF(m_name, m_mono.getWidth(), m_mono.getHeight());
 			}
 			else if(m_type == TYPE_SVG)
 			{
-				ret = Utils.saveSVG(m_name);
+				ret = Utils.saveSVG(m_name, m_mono.getWidth(), m_mono.getHeight());
 			}
             Message msg = m_handler.obtainMessage(0, ret);
             m_handler.sendMessage(msg);
@@ -398,6 +422,47 @@ public class PreviewActivity extends Activity {
     		}
 		}
 	};
+	
+	float distance(PointF p1, PointF p2)
+	{
+		return (float)Math.sqrt(((p2.y - p1.y) * (p2.y - p1.y) + (p2.x - p1.x) * (p2.x - p1.x)));
+	}
+	
+	class CropThread implements Runnable
+	{
+		@Override
+		public void run() {
+    		if(m_gray != null)
+    		{
+    		    Matrix matrix = new Matrix();
+    		    float w1 = distance(m_imageView.getLeftBottom(), m_imageView.getRightBottom());
+    		    float w2 = distance(m_imageView.getRightTop(), m_imageView.getLeftTop());
+
+    		    float h1 = distance(m_imageView.getLeftBottom(), m_imageView.getLeftTop());
+    		    float h2 = distance(m_imageView.getRightTop(), m_imageView.getRightBottom());
+    		    float w = Math.max(w1, w2);
+    		    float h = Math.max(h1, h2);
+    		    float[] dst = new float[] {
+    		    		0, 0, w, 0, w, h, 0, h
+    		    };
+    		    float[] src = new float[] {
+    		    		m_imageView.getLeftTop().x,
+    		    		m_imageView.getLeftTop().y,
+    		    		m_imageView.getRightTop().x,
+    		    		m_imageView.getRightTop().y,
+    		    		m_imageView.getRightBottom().x,
+    		    		m_imageView.getRightBottom().y,
+    		    		m_imageView.getLeftBottom().x,
+    		    		m_imageView.getLeftBottom().y
+    		    };
+    		    matrix.setPolyToPoly(src, 0, dst, 0, 4);
+    		    Bitmap ret = Bitmap.createBitmap(m_gray, 0, 0, (int)w, (int)h, matrix, true);
+                Message msg = m_handler.obtainMessage(0, ret);
+                m_handler.sendMessage(msg);
+    		}
+		}
+	};
+	
 	class LoadImageThread implements Runnable
 	{
 		@Override
