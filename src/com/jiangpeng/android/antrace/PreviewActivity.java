@@ -52,7 +52,7 @@ public class PreviewActivity extends Activity {
     public static String FILENAME = "FILENAME";
     public static int STATE_START = 0;
     public static int STATE_LOADED = 1;
-    public static int STATE_CROP = 2;
+    public static int STATE_CROPPED = 2;
     public static int STATE_MONO = 3;
     public static int STATE_TRACE = 4;
     public static int STATE_SAVE = 5;
@@ -110,22 +110,16 @@ public class PreviewActivity extends Activity {
 		public void onClick(View v) {
 			if(m_state == STATE_LOADED)
 			{
-				/*
+				m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
+				Thread t = new Thread(new CropThread());
+				t.start();
+				return;
+			}
+			if(m_state == STATE_CROPPED)
+			{
 		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 				Thread t = new Thread(new GrayscaleThread());
 				t.start();
-				*/
-				m_ok.setText("Crop");
-				m_state = STATE_CROP;
-				m_imageView.startCrop();
-				return;
-			}
-			if(m_state == STATE_CROP)
-			{
-		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
-				Thread t = new Thread(new CropThread());
-				t.start();
-				m_imageView.endCrop();
 				m_ok.setText("Next");
 				return;
 			}
@@ -341,9 +335,18 @@ public class PreviewActivity extends Activity {
             	{
             		m_state = STATE_LOADED;
             		m_gray = bmp;
+            		m_imageView.startCrop();
             		return;
             	}
-            	if(m_state == STATE_CROP)
+            	if(m_state == STATE_LOADED)
+            	{
+            		m_gray = bmp;
+            		m_ok.setText("Next");
+            		m_state = STATE_CROPPED;
+            		m_imageView.endCrop();
+            		return;
+            	}
+            	if(m_state == STATE_CROPPED)
             	{
             		m_gray = bmp;
             		m_thresholdSeek.setVisibility(View.VISIBLE);
@@ -351,14 +354,6 @@ public class PreviewActivity extends Activity {
             		m_state = STATE_MONO;
             		return;
             	}
-            	/*
-            	if(m_state == STATE_LOADED)
-            	{
-            		m_state = STATE_CROP;
-            		m_imageView.startCrop();
-            		return;
-            	}
-            	*/
             }
         }
     };
@@ -455,8 +450,37 @@ public class PreviewActivity extends Activity {
     		    		m_imageView.getLeftBottom().x,
     		    		m_imageView.getLeftBottom().y
     		    };
+
+    		    float[] o = new float[]
+    		    		{
+    		    		0, 0, m_gray.getWidth(), 0, m_gray.getWidth(), m_gray.getHeight(), 0, m_gray.getHeight()
+    		    		};
+    		    float[] newpts = new float[8];
+    		    float[] newo = new float[8];
     		    matrix.setPolyToPoly(src, 0, dst, 0, 4);
-    		    Bitmap ret = Bitmap.createBitmap(m_gray, 0, 0, (int)w, (int)h, matrix, true);
+//    		    matrix.mapPoints(newpts, src);
+    		    matrix.mapPoints(newo, o);
+    		    Bitmap ret = Bitmap.createBitmap(m_gray, 0, 0, (int)m_gray.getWidth(), (int)m_gray.getHeight(), matrix, true);
+    		    matrix.reset();
+    		    float lowx = newo[0];
+    		    float lowy = newo[1];
+    		    for(int i = 1; i < 4; ++i)
+    		    {
+    		    	if(lowx > newo[i * 2])
+    		    	{
+    		    		lowx = newo[i * 2];
+    		    	}
+
+    		    	if(lowy > newo[i * 2 + 1])
+    		    	{
+    		    		lowy = newo[i * 2 + 1];
+    		    	}
+    		    }
+    		    ret = Bitmap.createBitmap(ret, -1 * (int)lowx, -1 * (int)lowy, (int)w, (int)h, matrix, true);
+    		    /*
+    		    int nw = ret.getWidth();
+    		    int nh = ret.getHeight();
+    		    */
                 Message msg = m_handler.obtainMessage(0, ret);
                 m_handler.sendMessage(msg);
     		}
@@ -528,112 +552,6 @@ public class PreviewActivity extends Activity {
             m_handler.sendMessage(msg);
 		}
 	}
-
-	/*
-	public void saveCurrentImage()
-	{
-		if(m_bitmap != null)
-		{
-			m_progress = ProgressDialog.show(this, "", 
-					getResources().getString(R.string.loading), true);
-			Thread t = new Thread(new SaveToFileThread());
-			t.start();
-		}
-	}
-
-   	class SaveToFileThread implements Runnable
-   	{
-   		private Uri saveToFile()
-   		{
-   			String tempfile = m_photoFile;
-        	FileOutputStream out;
-        	try
-        	{
-        		out = new FileOutputStream(tempfile);
-        	} 
-        	catch (FileNotFoundException e)
-        	{
-        		return null;
-        	}
-        	if(!m_bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out))
-        	{
-        		return null;
-        	}
-        	try
-        	{
-        		out.flush();
-        		out.close();
-        	} 
-        	catch (IOException e)
-        	{
-        		return null;
-        	}
-        	
-        	String[] s = {BaseColumns._ID, MediaColumns.DATA};
-        	String sel = "_data=?";
-        	String[] args = { tempfile };
-        	Cursor cursor = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, s, sel, args, null);
-        		
-        	ContentValues values = new ContentValues(); 	
-        	values.put(Media.TITLE, "Image");
-        	values.put(Images.Media.BUCKET_ID, tempfile.hashCode());
-        	values.put(Images.Media.BUCKET_DISPLAY_NAME, "Watermark Blank");
-        	values.put(Images.Media.MIME_TYPE, "image/jpeg");
-        	values.put(Media.DESCRIPTION, "Watermark Blank Result");
-        	values.put("_data", m_photoFile);
-  
-        	Uri u = null;
-        	if(cursor != null)
-        	{
-        		if(cursor.moveToFirst())
-        		//while(cursor.moveToNext())
-        		{
-        			int imageID = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID));
-        			Uri uri = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, Integer.toString(imageID));
-        			
-        			getContentResolver().update(uri, values, null, null);
-        			u = uri;
-        			//m_imageContext.activity.getContentResolver().delete(uri, null, null);
-        		}
-        		else
-        		{
-        			u = getContentResolver().insert( Media.EXTERNAL_CONTENT_URI , values);
-        		}
-       			cursor.close();
-        	}
-       		else
-       		{
-       			u = getContentResolver().insert( Media.EXTERNAL_CONTENT_URI , values);
-       		}
-        	
-        	return u;
-   		}
-	
-		@Override
-		public void run() {
-			Uri u = saveToFile();
-			
-            Message msg = m_doneHandler.obtainMessage(0, u);
-            m_doneHandler.sendMessage(msg);
-		}
-   	}
-
-   	private Handler m_doneHandler = new Handler()
-   	{
-        @Override
-        public void handleMessage(Message msg)
-        {
-           	if(m_progress != null)
-        	{
-           		if(m_progress.isShowing())
-           		{
-           			m_progress.dismiss();
-           		}
-        		m_progress = null;
-        	}
-        }
-   	};
-   	*/
 
 	@Override
 	protected void onDestroy() {
