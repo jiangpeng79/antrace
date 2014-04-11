@@ -288,7 +288,7 @@ public class PreviewImageView extends ImageView {
 
 		if(m_path != null)
 		{
-			drawPath(canvas);
+//			drawPath(canvas);
 			return;
 		}
 		
@@ -381,6 +381,8 @@ public class PreviewImageView extends ImageView {
                 		m_rightBottom.x += rawEvent.getX() - m_last.x;
                 		m_rightBottom.y += rawEvent.getY() - m_last.y;
                 	}
+                	
+                	restrictSelection(m_hitTest);
                 	m_last.set(rawEvent.getX(), rawEvent.getY());
                 }
                 break;
@@ -444,5 +446,78 @@ public class PreviewImageView extends ImageView {
     public PointF getLeftBottom()
     {
     	return toBitmap(m_leftBottom);
+    }
+    
+    private RectF getImageRect()
+    {
+		float[] pts = new float[4];
+		float w = m_bitmap.getWidth();
+		float h = m_bitmap.getHeight();
+		pts[0] = 0;
+		pts[1] = 0;
+
+		pts[2] = w;
+		pts[3] = h;
+
+    	float[] ret = new float[4];
+    	m_imageToScreen.mapPoints(ret, pts);
+    	
+    	return new RectF(ret[0], ret[1], ret[2], ret[3]);
+    }
+    
+    private PointF correctPoint(RectF rc, PointF pt)
+    {
+    	if(rc.contains(pt.x, pt.y))
+    	{
+    		return pt;
+    	}
+    	
+    	float x = pt.x;
+    	float y = pt.y;
+    	if(pt.y < rc.top)
+    	{
+    		y = rc.top;
+    	}
+
+    	if(pt.y > rc.bottom)
+    	{
+    		y = rc.bottom;
+    	}
+
+    	if(pt.x < rc.left)
+    	{
+    		x = rc.left;
+    	}
+
+    	if(pt.x > rc.right)
+    	{
+    		x = rc.right;
+    	}
+    	
+    	return new PointF(x, y);
+    }
+
+    private void restrictSelection(HitTestResult hitTest)
+    {
+    	RectF rc = getImageRect();
+    	if(hitTest == HitTestResult.TopLeft)
+    	{
+    		m_leftTop = correctPoint(rc, m_leftTop);
+    	}
+
+    	if(hitTest == HitTestResult.TopRight)
+    	{
+    		m_rightTop = correctPoint(rc, m_rightTop);
+    	}
+
+    	if(hitTest == HitTestResult.BottomRight)
+    	{
+    		m_rightBottom = correctPoint(rc, m_rightBottom);
+    	}
+
+    	if(hitTest == HitTestResult.BottomLeft)
+    	{
+    		m_leftBottom = correctPoint(rc, m_leftBottom);
+    	}
     }
 }
