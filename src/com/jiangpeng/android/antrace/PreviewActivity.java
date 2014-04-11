@@ -30,6 +30,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.ProgressBar;
 import android.widget.RadioGroup;
+import android.widget.RadioGroup.OnCheckedChangeListener;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.Toast;
@@ -59,6 +60,7 @@ public class PreviewActivity extends Activity {
     
     public static int TYPE_SVG = 1;
     public static int TYPE_DXF = 2;
+    public static int TYPE_PDF = 2;
     private int m_state = STATE_START;
 	
     static {
@@ -72,7 +74,6 @@ public class PreviewActivity extends Activity {
         
         m_imageView = (PreviewImageView)findViewById(R.id.previewImageView);
         m_filename = this.getIntent().getStringExtra(PreviewActivity.FILENAME);
-		FileUtils.checkAndCreateFolder(FileUtils.getRootFolder() + FileUtils.sep + MainActivity.TEMP_FOLDER);
        	m_progress = ProgressDialog.show(this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 		Thread t = new Thread(new LoadImageThread());
 		t.start();
@@ -120,7 +121,7 @@ public class PreviewActivity extends Activity {
 		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 				Thread t = new Thread(new GrayscaleThread());
 				t.start();
-				m_ok.setText("Next");
+				m_ok.setText(R.string.next);
 				return;
 			}
 			if(m_state == STATE_MONO)
@@ -129,7 +130,7 @@ public class PreviewActivity extends Activity {
 		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 				Thread t = new Thread(new TraceThread());
 				t.start();
-				m_ok.setText("Save");
+				m_ok.setText(R.string.save);
 				return;
 			}
 			if(m_state == STATE_TRACE)
@@ -144,6 +145,10 @@ public class PreviewActivity extends Activity {
 	{
 	    @Override
 	    public void onClick(View v) {
+			if(m_state == STATE_LOADED)
+			{
+				endCrop();
+			}
 	        return;
 	    }
 	};
@@ -229,18 +234,29 @@ public class PreviewActivity extends Activity {
 		final EditText nameEdit = (EditText)view.findViewById(R.id.filenameEdit);
 		final RadioGroup typeRadio = (RadioGroup)view.findViewById(R.id.typeGroup);
 		String name = "output.svg";
-		if(typeRadio.getCheckedRadioButtonId() == R.id.dxfRadio)
-		{
-			name = "output.dxf";
-		}
-		else if(typeRadio.getCheckedRadioButtonId() == R.id.svgRadio)
-		{
-			name = "output.svg";
-		}
-		String path = FileUtils.getRootFolder() + FileUtils.sep + name;
-		nameEdit.setText(path);
+		String fullname = FileUtils.getRootFolder() + FileUtils.sep + name;
+		nameEdit.setText(fullname);
+		typeRadio.setOnCheckedChangeListener(new OnCheckedChangeListener(){
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				String text = nameEdit.getText().toString();
+				String path = FileUtils.getPath(text);
+				String shortName = FileUtils.getShortName(text);
+				String stem = FileUtils.getFileStem(shortName);
+				if(checkedId == R.id.dxfRadio)
+				{
+					String newname = path + stem + ".dxf";
+					nameEdit.setText(newname);
+				}
+				else if(checkedId == R.id.svgRadio)
+				{
+					String newname = path + stem + ".svg";
+					nameEdit.setText(newname);
+				}
+			}
+		});
 		builder.setView(view);
-		builder.setTitle("Save to file");
+		builder.setTitle(R.string.save_to_file);
 		builder.setIcon(android.R.drawable.ic_dialog_info);
         builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
             @Override
@@ -295,7 +311,7 @@ public class PreviewActivity extends Activity {
 
         		if(p == null)
         		{
-        			Toast toast = Toast.makeText(PreviewActivity.this, "Trace failed...", Toast.LENGTH_SHORT);
+        			Toast toast = Toast.makeText(PreviewActivity.this, R.string.trace_failed, Toast.LENGTH_SHORT);
         			toast.show();
         		}
         		else
@@ -309,7 +325,7 @@ public class PreviewActivity extends Activity {
         		Boolean ret = (Boolean)msg.obj;
         		if(!ret)
         		{
-        			Toast toast = Toast.makeText(PreviewActivity.this, "Save failed...", Toast.LENGTH_SHORT);
+        			Toast toast = Toast.makeText(PreviewActivity.this, R.string.save_failed, Toast.LENGTH_SHORT);
         			toast.show();
         		}
         		return;
@@ -334,6 +350,8 @@ public class PreviewActivity extends Activity {
             	if(m_state == STATE_START)
             	{
             		m_state = STATE_LOADED;
+            		m_ok.setText(R.string.crop);
+            		m_cancel.setText(R.string.skip);
             		m_gray = bmp;
             		m_imageView.startCrop();
             		return;
@@ -341,9 +359,7 @@ public class PreviewActivity extends Activity {
             	if(m_state == STATE_LOADED)
             	{
             		m_gray = bmp;
-            		m_ok.setText("Next");
-            		m_state = STATE_CROPPED;
-            		m_imageView.endCrop();
+            		endCrop();
             		return;
             	}
             	if(m_state == STATE_CROPPED)
@@ -357,6 +373,14 @@ public class PreviewActivity extends Activity {
             }
         }
     };
+    
+    private void endCrop()
+    {
+		m_ok.setText(R.string.next);
+		m_cancel.setText(android.R.string.cancel);
+		m_state = STATE_CROPPED;
+		m_imageView.endCrop();
+    }
 
 	class SaveFileThread implements Runnable
 	{
@@ -412,6 +436,9 @@ public class PreviewActivity extends Activity {
     		if(m_gray != null)
     		{
 				path p = Utils.traceImage(m_mono);
+
+				String svgFile = FileUtils.tempSvgFile();
+				Utils.saveSVG(svgFile, m_mono.getWidth(), m_mono.getHeight());
                 Message msg = m_handler.obtainMessage(0, p);
                 m_handler.sendMessage(msg);
     		}
@@ -455,7 +482,7 @@ public class PreviewActivity extends Activity {
     		    		{
     		    		0, 0, m_gray.getWidth(), 0, m_gray.getWidth(), m_gray.getHeight(), 0, m_gray.getHeight()
     		    		};
-    		    float[] newpts = new float[8];
+//    		    float[] newpts = new float[8];
     		    float[] newo = new float[8];
     		    matrix.setPolyToPoly(src, 0, dst, 0, 4);
 //    		    matrix.mapPoints(newpts, src);

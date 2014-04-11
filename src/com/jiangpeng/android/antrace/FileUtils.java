@@ -14,7 +14,8 @@ public class FileUtils
 {
     public static String sep = "/";
     public static String png = ".png";
-
+    public static String TEMP_FOLDER = ".antraceTemp_"; 
+    public static String FILE_NAME = "FILE_NAME"; 
 	public static boolean sdcardExists()
 	{
 	    String state = Environment.getExternalStorageState();
@@ -24,6 +25,11 @@ public class FileUtils
 	    }
 		File file = Environment.getExternalStorageDirectory();
 		return file.exists() && file.isAbsolute() && file.canRead();
+	}
+	
+	public static String tempSvgFile()
+	{
+		return getRootFolder() + FileUtils.sep + TEMP_FOLDER + FileUtils.sep + "__temp_svg.svg";
 	}
 
 	public static boolean folderExists(String folder)
@@ -94,4 +100,36 @@ public class FileUtils
    		}
 		return 0;
     }
+    
+	public static String getFileStem(String filename)
+	{
+		int i = filename.lastIndexOf(".");
+		if(i == -1)
+		{
+			return filename;
+		}
+		return filename.substring(0, i);
+	}
+	
+	public static String getShortName(String filename)
+	{
+        String shortName = filename;
+        int i = filename.lastIndexOf(FileUtils.sep);
+        if (i >= 0)
+        {
+            shortName = filename.substring(i + 1, filename.length());
+        }
+        return shortName;
+	}
+	
+	public static String getPath(String filename)
+	{
+        String path = filename;
+        int i = filename.lastIndexOf(FileUtils.sep);
+        if (i >= 0)
+        {
+            path = filename.substring(0, i);
+        }
+        return path;
+	}
 }
