@@ -16,7 +16,6 @@
 #include "potrace/backend_dxf.h"
 #include "potrace/backend_geojson.h"
 #include "potrace/potracelib.h"
-#include "potrace/bitmap_io.h"
 #include "potrace/bitmap.h"
 #include "potrace/platform.h"
 #include "potrace/auxiliary.h"
@@ -1046,91 +1045,6 @@ static char *make_outfilename(char *infile, char *ext) {
 /* Process one or more bitmaps from fin, and write the results to fout
    using the page_f function of the appropriate backend. */
 
-static void process_file(backend_t *b, const char *infile, const char *outfile, FILE *fin, FILE *fout) {
-  int r;
-  potrace_bitmap_t *bm = NULL;
-  imginfo_t imginfo;
-  int eof_flag = 0;  /* to indicate premature eof */
-  int count;         /* number of bitmaps successfully processed, this file */
-  potrace_state_t *st;
-
-  for (count=0; ; count++) {
-    /* read a bitmap */
-    r = bm_read(fin, info.blacklevel, &bm);
-    switch (r) {
-    case -1:  /* system error */
-      fprintf(stderr, "\"POTRACE\": %s: %s\n", infile, strerror(errno));
-      exit(2);
-    case -2:  /* corrupt file format */
-      fprintf(stderr, "\"POTRACE\": %s: file format error: %s\n", infile, bm_read_error);
-      exit(2);
-    case -3:  /* empty file */
-      if (count>0) {  /* end of file */
-	return;
-      }
-      fprintf(stderr, "\"POTRACE\": %s: empty file\n", infile);
-      exit(2);
-    case -4:  /* wrong magic */
-      if (count>0) {
-	fprintf(stderr, "\"POTRACE\": %s: warning: junk at end of file\n", infile);
-	return;
-      }
-      fprintf(stderr, "\"POTRACE\": %s: file format not recognized\n", infile);
-      fprintf(stderr, "Possible input file formats are: pnm (pbm, pgm, ppm), bmp.\n");
-      exit(2);
-    case 1:  /* unexpected end of file */
-      fprintf(stderr, "\"POTRACE\": warning: %s: premature end of file\n", infile);
-      eof_flag = 1;
-      break;
-    }
-
-    /* prepare progress bar, if requested */
-    if (info.progress) {
-      r = info.progress_bar->init(&info.param->progress, infile, count);
-      if (r) {
-	fprintf(stderr, "\"POTRACE\": %s\n", strerror(errno));
-	exit(2);
-      }
-    } else {
-      info.param->progress.callback = NULL;
-    }
-
-    if (info.invert) {
-      bm_invert(bm);
-    }
-
-    /* process the image */
-    st = potrace_trace(info.param, bm);
-    if (!st || st->status != POTRACE_STATUS_OK) {
-      fprintf(stderr, "\"POTRACE\": %s: %s\n", infile, strerror(errno));
-      exit(2);
-    }
-
-    /* calculate image dimensions */
-    imginfo.pixwidth = bm->w;
-    imginfo.pixheight = bm->h;
-    bm_free(bm);
-
-    calc_dimensions(&imginfo, st->plist);
-
-    r = b->page_f(fout, st->plist, &imginfo);
-    if (r) {
-      fprintf(stderr, "\"POTRACE\": %s: %s\n", outfile, strerror(errno));
-      exit(2);
-    }
-
-    potrace_state_free(st);
-
-    if (info.progress) {
-      info.progress_bar->term(&info.param->progress);
-    }
-
-    if (eof_flag || !b->multi) {
-      return;
-    }
-  }
-  /* not reached */
-}
 
 /* ---------------------------------------------------------------------- */
 /* main: handle file i/o */
@@ -1416,6 +1330,8 @@ JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_traceImage( J
 	}
 
 	potrace_param_t* param_t = potrace_param_default();
+    param_t->turdsize = 15;
+    param_t->opttolerance = 0.8;
 	potrace_bitmap_t* bmp_t = bm_new(info.width, info.height);
 	//memcpy(bmp_t->map, src_pixels, bmp_t->dy * bmp_t->h * BM_WORDSIZE);
 
@@ -1617,13 +1533,9 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_grayScale( JNIEn
 	AndroidBitmap_unlockPixels(env, output);
 }
 
-JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveSVG(JNIEnv* env, jobject thiz, jstring path, int w, int h)
+void initInfo(char const* filetype)
 {
-    char const * filepath = env->GetStringUTFChars(path, NULL);
-    imginfo_t imginfo;
-    imginfo.pixwidth = w;
-    imginfo.pixheight = h;
-    backend_lookup("svg", &info.backend);
+    backend_lookup((char*)filetype, &info.backend);
     info.debug = 0;
     info.width_d.x = UNDEF;
     info.height_d.x = UNDEF;
@@ -1645,19 +1557,30 @@ JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveSVG(JNIE
     info.pslevel = 2;
     info.color = 0x000000;
     info.gamma = 2.2;
+    /*
     info.param = potrace_param_default();
     if (!info.param) {
     	return JNI_FALSE;
     }
+    */
     info.longcoding = 0;
     info.outfile = NULL;
     info.blacklevel = 0.5;
-    info.invert = 0;
+    info.invert = 1;
     info.opaque = 0;
     info.grouping = 1;
     info.fillcolor = 0xffffff;
     info.progress = 0;
     info.progress_bar = DEFAULT_PROGRESS_BAR;
+}
+
+jboolean saveToFile(JNIEnv* env, jobject thiz, jstring path, int w, int h, const char* filetype)
+{
+    char const * filepath = env->GetStringUTFChars(path, NULL);
+    imginfo_t imginfo;
+    imginfo.pixwidth = w;
+    imginfo.pixheight = h;
+    initInfo(filetype);
     calc_dimensions(&imginfo, s_state->plist);
     FILE* f = fopen(filepath,"w+");
     if(f)
@@ -1670,10 +1593,14 @@ JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveSVG(JNIE
     return JNI_FALSE;
 }
 
-JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveDXF(JNIEnv* env, jobject thiz, jstring path)
+JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveSVG(JNIEnv* env, jobject thiz, jstring path, int w, int h)
 {
-    char const * filepath = env->GetStringUTFChars(path, NULL);
-    return JNI_TRUE;
+	return saveToFile(env, thiz, path, w, h, "svg");
+}
+
+JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveDXF(JNIEnv* env, jobject thiz, jstring path, int w, int h)
+{
+	return saveToFile(env, thiz, path, w, h, "dxf");
 }
 
 JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_clearState(JNIEnv* env)

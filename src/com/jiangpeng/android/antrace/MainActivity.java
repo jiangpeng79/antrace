@@ -19,8 +19,7 @@ public class MainActivity extends Activity {
     private static int EDIT_IMAGE_CODE = 122;
     private static int SELECT_PHOTO = 100;
     public static String PHOTO_FILE_TEMP_ = "__antrace.jpg";
-    public static String TEMP_FOLDER = ".antraceTemp_"; 
-    public static String FILE_NAME = "FILE_NAME"; 
+
 	Button m_takePicture = null;
 	Button m_selectPicture = null;
 	Button m_about = null;
@@ -44,8 +43,8 @@ public class MainActivity extends Activity {
         m_about.setOnClickListener(aboutListener);
         */
 
-		m_photoFile = FileUtils.getRootFolder() + FileUtils.sep + TEMP_FOLDER + FileUtils.sep + PHOTO_FILE_TEMP_;
-		FileUtils.checkAndCreateFolder(FileUtils.getRootFolder() + FileUtils.sep + TEMP_FOLDER);
+		m_photoFile = FileUtils.getRootFolder() + FileUtils.sep + FileUtils.TEMP_FOLDER + FileUtils.sep + PHOTO_FILE_TEMP_;
+		FileUtils.checkAndCreateFolder(FileUtils.getRootFolder() + FileUtils.sep + FileUtils.TEMP_FOLDER);
 	}
 
 	@Override

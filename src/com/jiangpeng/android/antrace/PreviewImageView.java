@@ -176,11 +176,6 @@ public class PreviewImageView extends ImageView {
         m_imageToScreen.setTranslate(1f, 1f);
         setImageMatrix(m_imageToScreen);
         setScaleType(ScaleType.MATRIX);
-		m_paint.setColor(Color.RED);
-		m_paint.setStyle(Paint.Style.STROKE);
-		m_paint.setStrokeCap(Paint.Cap.ROUND);
-		m_paint.setStrokeWidth(2.0f);
-		m_paint.setAntiAlias(true);
         setOnTouchListener(m_touchListener);
     }
     
@@ -234,6 +229,11 @@ public class PreviewImageView extends ImageView {
 		{
 			return;
 		}
+		m_paint.setColor(Color.RED);
+		m_paint.setStyle(Paint.Style.STROKE);
+		m_paint.setStrokeCap(Paint.Cap.ROUND);
+		m_paint.setStrokeWidth(2.0f);
+		m_paint.setAntiAlias(false);
 		path next = m_path;
 		while(next != null)
 		{
@@ -247,9 +247,9 @@ public class PreviewImageView extends ImageView {
 //			Path p = new Path();
 			for(int i = 0; i < next.curve.n; ++i)
 			{
-				m_p.moveTo(prev[0], prev[1]);
 				if(todraw.tag[i] == curve.POTRACE_CURVETO)
 				{
+					m_p.moveTo(prev[0], prev[1]);
 					float[] p1 = transform(todraw.c[i][0]);
 					float[] p2 = transform(todraw.c[i][1]);
 					float[] p3 = transform(todraw.c[i][2]);
@@ -263,6 +263,7 @@ public class PreviewImageView extends ImageView {
 				}
 				else if(todraw.tag[i] == curve.POTRACE_CORNER)
 				{
+					m_p.moveTo(prev[0], prev[1]);
 //					dpoint pt = todraw.c[i][1];
 					float[] cur = transform(todraw.c[i][1]);
 					m_p.lineTo(cur[0], cur[1]);
@@ -318,6 +319,7 @@ public class PreviewImageView extends ImageView {
 			m_paint.setColor(Color.argb(255, 255, 255, 0));
 			m_paint.setStyle(Paint.Style.STROKE);
 			m_paint.setStrokeWidth(2.0f);
+			m_paint.setAntiAlias(true);
 			canvas.drawLines(pts, m_paint); 
 			
 			float radius = 8;
