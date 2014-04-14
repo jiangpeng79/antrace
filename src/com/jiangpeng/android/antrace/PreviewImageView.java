@@ -1,5 +1,11 @@
 package com.jiangpeng.android.antrace;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+
+import com.caverock.androidsvg.SVG;
+import com.caverock.androidsvg.SVGParseException;
 import com.jiangpeng.android.antrace.Objects.curve;
 import com.jiangpeng.android.antrace.Objects.dpoint;
 import com.jiangpeng.android.antrace.Objects.path;
@@ -11,8 +17,11 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Picture;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.PictureDrawable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -37,19 +46,15 @@ public class PreviewImageView extends ImageView {
 		Outside,
 		None
 	};
-    // We can be in one of these 3 states
     static final int NONE = 0;
     static final int DRAG = 1;
     static final int ZOOM = 2;
-    static final int ROTATE = 3;
     static final int ZOOM_SELECTION = 4;
     static final int DRAG_SELECTION = 5;
     private Matrix m_imageToScreen = new Matrix();
     private Matrix m_screenToImage = new Matrix();
     private Bitmap m_bitmap = null;
-    private path m_path = null;
     private Paint m_paint = new Paint();
-    private Path m_p = new Path();
     private boolean m_isCropping = false;
     private PointF m_leftTop = new PointF();
     private PointF m_rightTop = new PointF();
@@ -59,18 +64,28 @@ public class PreviewImageView extends ImageView {
     static final float MinSize = 80f;
     private int m_mode = NONE;
     private HitTestResult m_hitTest = HitTestResult.None;
+    private Picture m_svgPicture = null;
 
     // Remember some things for zooming
     private PointF m_start = new PointF();
     private PointF m_last = new PointF();
-    public boolean hasPath()
-    {
-    	return m_path != null;
-    }
     
-    public void setPath(path p)
+    public void setSVGFile(String name)
     {
-    	m_path = p;
+		InputStream svgstr;
+		try {
+			svgstr = new FileInputStream(name);
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+			return;
+		}
+		SVG svg = null;
+		try {
+			svg = SVG.getFromInputStream(svgstr);
+		} catch (SVGParseException e) {
+			return;
+		}    	
+		m_svgPicture = svg.renderToPicture();
     	invalidate();
     }
     
@@ -223,6 +238,7 @@ public class PreviewImageView extends ImageView {
     	return p;
     }
 
+    /*
     private void drawPath(Canvas canvas)
     {
 		if(m_path == null)
@@ -254,11 +270,10 @@ public class PreviewImageView extends ImageView {
 					float[] p2 = transform(todraw.c[i][1]);
 					float[] p3 = transform(todraw.c[i][2]);
 					m_p.cubicTo(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]);
-					/*
-					Log.v("CURVE", Double.toString(p1[0]) + ", " + Double.toString(p1[1]) + "  "
-						+ Double.toString(p2[0]) + ", " + Double.toString(p2[1]) + "  "
-						+ Double.toString(p3[0]) + ", " + Double.toString(p3[1]));
-						*/
+//					Log.v("CURVE", Double.toString(p1[0]) + ", " + Double.toString(p1[1]) + "  "
+//						+ Double.toString(p2[0]) + ", " + Double.toString(p2[1]) + "  "
+//						+ Double.toString(p3[0]) + ", " + Double.toString(p3[1]));
+//						
 					prev = p3;
 				}
 				else if(todraw.tag[i] == curve.POTRACE_CORNER)
@@ -282,17 +297,18 @@ public class PreviewImageView extends ImageView {
 //			Log.v("NEXT CURVE", "NEXT CURVE");
 		}
     }
+    */
 
     @Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
 
-		if(m_path != null)
+		if(m_svgPicture != null)
 		{
-//			drawPath(canvas);
+			RectF rc = getImageRect();
+			canvas.drawPicture(m_svgPicture, rc);
 			return;
 		}
-		
 		if(m_isCropping)
 		{
 			float[] pts = new float[16];

@@ -1312,7 +1312,11 @@ jobject createPath(JNIEnv* env, potrace_path_t* path)
 	return ret;
 }
 
-JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_traceImage( JNIEnv* env, jobject thiz, jobject bitmap)
+JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_unsharpMask(JNIEnv* env, jobject thiz, jobject bitmap)
+{
+}
+
+JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_traceImage(JNIEnv* env, jobject thiz, jobject bitmap)
 {
 	AndroidBitmapInfo info;
 	int ret = 0;
@@ -1352,11 +1356,11 @@ JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_traceImage( J
 	    	int32_t dst_color = (kRedRatio * src_red + kGreenRatio * src_green +
 	    			kBlueRatio * src_blue) >> kShiftBits;
 	    	if (dst_color > 128) {
-    	      BM_PUT(bmp_t, x, scan_line, 1);
+    	      BM_PUT(bmp_t, x, info.height - 1 - scan_line, 1);
 	    	}
 	    	else
 	    	{
-    	      BM_PUT(bmp_t, x, scan_line, 0);
+    	      BM_PUT(bmp_t, x, info.height - 1 - scan_line, 0);
 	    	}
 	    	src++;
 	    	++x;
@@ -1472,6 +1476,82 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_threshold(JNIEnv
 	AndroidBitmap_unlockPixels(env, output);
 }
 
+void unsharpMask(void* src_pixels, void* dst_pixels, int w, int h, int stride)
+{
+
+}
+
+void histogramNormalize(void* src_pixels, void* dst_pixels, int w, int h, int stride, int32_t histogram[])
+{
+	int32_t threshold_intensity, intense;
+	int32_t x, y, i;
+	uint32_t normalize_map[256];
+	uint32_t high, low;
+	memset( &normalize_map, 0, sizeof( uint32_t ) * 256 );
+
+	// find histogram boundaries by locating the 1 percent levels
+	threshold_intensity = (w * h) / 100;
+
+	intense = 0;
+	for( low = 0; low < 255; low++ ){
+		intense += histogram[low];
+		if( intense > threshold_intensity )	break;
+	}
+
+	intense = 0;
+	for( high = 255; high != 0; high--){
+		intense += histogram[ high ];
+		if( intense > threshold_intensity ) break;
+	}
+
+	if ( low == high ){
+		// Unreasonable contrast;  use zero threshold to determine boundaries.
+		threshold_intensity = 0;
+		intense = 0;
+		for( low = 0; low < 255; low++){
+			intense += histogram[low];
+			if( intense > threshold_intensity )	break;
+		}
+		intense = 0;
+		for( high = 255; high != 0; high-- ){
+			intense += histogram [high ];
+			if( intense > threshold_intensity )	break;
+		}
+	}
+	if( low == high )
+	{
+		return;  // zero span bound
+	}
+
+	// Stretch the histogram to create the normalized image mapping.
+	for(i = 0; i <= 255; i++){
+		if ( i < (int32_t) low ){
+			normalize_map[i] = 0;
+		} else {
+			if(i > (int32_t) high)
+				normalize_map[i] = 255;
+			else
+				normalize_map[i] = ( 255 - 1) * ( i - low) / ( high - low );
+		}
+	}
+
+	for (uint32_t scan_line = 0; scan_line < h; scan_line++) {
+	    uint32_t* dst = reinterpret_cast<uint32_t*>(dst_pixels);
+	    pixel32_t* src = reinterpret_cast<pixel32_t*>(src_pixels);
+	    pixel32_t* src_line_end = src + w;
+	    while (src < src_line_end) {
+	    	int32_t src_alpha = src->rgba8[3];
+	    	unsigned char dst_color = src->rgba8[0];
+	    	unsigned char mapped = (uint8_t)normalize_map[dst_color];
+	    	*dst = (src_alpha << 24) | (mapped << 16) | (mapped << 8) | mapped;
+	    	dst++;
+	    	src++;
+	    }
+	    dst_pixels = reinterpret_cast<char*>(dst_pixels) + stride;
+	    src_pixels = reinterpret_cast<char*>(src_pixels) + stride;
+	}
+}
+
 JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_grayScale( JNIEnv* env, jobject thiz, jobject input, jobject output )
 {
 	AndroidBitmapInfo inputInfo;
@@ -1502,10 +1582,15 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_grayScale( JNIEn
 		return;
 	}
 
+	int32_t histogram[256];
+	memset( &histogram, 0, sizeof( int32_t ) * 256 );
 	const int kShiftBits = 20;
 	const int32_t kRedRatio = static_cast<int32_t>((1 << kShiftBits) * 0.21f);
 	const int32_t kGreenRatio = static_cast<int32_t>((1 << kShiftBits) * 0.71f);
 	const int32_t kBlueRatio = static_cast<int32_t>((1 << kShiftBits) * 0.07f);
+
+	void* src_start = src_pixels;
+	void* dst_start = dst_pixels;
 	for (uint32_t scan_line = 0; scan_line < outputInfo.height; scan_line++) {
 	    uint32_t* dst = reinterpret_cast<uint32_t*>(dst_pixels);
 	    pixel32_t* src = reinterpret_cast<pixel32_t*>(src_pixels);
@@ -1522,12 +1607,89 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_grayScale( JNIEn
 	    		dst_color = 255;
 	    	}
 	    	*dst = (src_alpha << 24) | (dst_color << 16) | (dst_color << 8) | dst_color;
+	    	unsigned char index = (unsigned char)*dst;
+			histogram[index]++;
 	    	dst++;
 	    	src++;
 	    }
 	    dst_pixels = reinterpret_cast<char*>(dst_pixels) + outputInfo.stride;
 	    src_pixels = reinterpret_cast<char*>(src_pixels) + inputInfo.stride;
 	}
+
+	histogramNormalize(src_start, dst_start, outputInfo.width, outputInfo.height, inputInfo.stride, histogram);
+	/*
+	int32_t threshold_intensity, intense;
+	int32_t x, y, i;
+	uint32_t normalize_map[256];
+	uint32_t high, low;
+	memset( &normalize_map, 0, sizeof( uint32_t ) * 256 );
+
+	// find histogram boundaries by locating the 1 percent levels
+	threshold_intensity = ( outputInfo.width * outputInfo.height) / 100;
+
+	intense = 0;
+	for( low = 0; low < 255; low++ ){
+		intense += histogram[low];
+		if( intense > threshold_intensity )	break;
+	}
+
+	intense = 0;
+	for( high = 255; high != 0; high--){
+		intense += histogram[ high ];
+		if( intense > threshold_intensity ) break;
+	}
+
+	if ( low == high ){
+		// Unreasonable contrast;  use zero threshold to determine boundaries.
+		threshold_intensity = 0;
+		intense = 0;
+		for( low = 0; low < 255; low++){
+			intense += histogram[low];
+			if( intense > threshold_intensity )	break;
+		}
+		intense = 0;
+		for( high = 255; high != 0; high-- ){
+			intense += histogram [high ];
+			if( intense > threshold_intensity )	break;
+		}
+	}
+	if( low == high )
+	{
+		AndroidBitmap_unlockPixels(env, input);
+		AndroidBitmap_unlockPixels(env, output);
+		return;  // zero span bound
+	}
+
+	// Stretch the histogram to create the normalized image mapping.
+	for(i = 0; i <= 255; i++){
+		if ( i < (int32_t) low ){
+			normalize_map[i] = 0;
+		} else {
+			if(i > (int32_t) high)
+				normalize_map[i] = 255;
+			else
+				normalize_map[i] = ( 255 - 1) * ( i - low) / ( high - low );
+		}
+	}
+
+	src_pixels = src_start;
+	dst_pixels = dst_start;
+	for (uint32_t scan_line = 0; scan_line < outputInfo.height; scan_line++) {
+	    uint32_t* dst = reinterpret_cast<uint32_t*>(dst_pixels);
+	    pixel32_t* src = reinterpret_cast<pixel32_t*>(src_pixels);
+	    pixel32_t* src_line_end = src + inputInfo.width;
+	    while (src < src_line_end) {
+	    	int32_t src_alpha = src->rgba8[3];
+	    	unsigned char dst_color = src->rgba8[0];
+	    	unsigned char mapped = (uint8_t)normalize_map[dst_color];
+	    	*dst = (src_alpha << 24) | (mapped << 16) | (mapped << 8) | mapped;
+	    	dst++;
+	    	src++;
+	    }
+	    dst_pixels = reinterpret_cast<char*>(dst_pixels) + outputInfo.stride;
+	    src_pixels = reinterpret_cast<char*>(src_pixels) + inputInfo.stride;
+	}
+	*/
 
 	AndroidBitmap_unlockPixels(env, input);
 	AndroidBitmap_unlockPixels(env, output);
@@ -1566,7 +1728,7 @@ void initInfo(char const* filetype)
     info.longcoding = 0;
     info.outfile = NULL;
     info.blacklevel = 0.5;
-    info.invert = 1;
+    info.invert = 0;
     info.opaque = 0;
     info.grouping = 1;
     info.fillcolor = 0xffffff;
@@ -1585,8 +1747,22 @@ jboolean saveToFile(JNIEnv* env, jobject thiz, jstring path, int w, int h, const
     FILE* f = fopen(filepath,"w+");
     if(f)
     {
-    	page_svg(f, s_state->plist, &imginfo);
-    	fflush(f);
+    	struct backend_s * b = info.backend;
+        if (b->init_f) {
+          if(b->init_f(f) != 0)
+          {
+        	  fclose(f);
+        	  return JNI_FALSE;
+          }
+        }
+    	b->page_f(f, s_state->plist, &imginfo);
+        if (b->term_f) {
+       	  if(b->term_f(f) != 0)
+          {
+       		  fclose(f);
+       		  return JNI_FALSE;
+      	  }
+        }
     	fclose(f);
     	return JNI_TRUE;
     }
@@ -1601,6 +1777,11 @@ JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveSVG(JNIE
 JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_saveDXF(JNIEnv* env, jobject thiz, jstring path, int w, int h)
 {
 	return saveToFile(env, thiz, path, w, h, "dxf");
+}
+
+JNIEXPORT jboolean JNICALL Java_com_jiangpeng_android_antrace_Utils_savePDF(JNIEnv* env, jobject thiz, jstring path, int w, int h)
+{
+	return saveToFile(env, thiz, path, w, h, "pdfpage");
 }
 
 JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_clearState(JNIEnv* env)

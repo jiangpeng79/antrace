@@ -60,7 +60,7 @@ public class PreviewActivity extends Activity {
     
     public static int TYPE_SVG = 1;
     public static int TYPE_DXF = 2;
-    public static int TYPE_PDF = 2;
+    public static int TYPE_PDF = 3;
     private int m_state = STATE_START;
 	
     static {
@@ -148,8 +148,9 @@ public class PreviewActivity extends Activity {
 			if(m_state == STATE_LOADED)
 			{
 				endCrop();
+				return;
 			}
-	        return;
+			finish();
 	    }
 	};
 	
@@ -245,12 +246,17 @@ public class PreviewActivity extends Activity {
 				String stem = FileUtils.getFileStem(shortName);
 				if(checkedId == R.id.dxfRadio)
 				{
-					String newname = path + stem + ".dxf";
+					String newname = path + FileUtils.sep + stem + ".dxf";
 					nameEdit.setText(newname);
 				}
 				else if(checkedId == R.id.svgRadio)
 				{
-					String newname = path + stem + ".svg";
+					String newname = path + FileUtils.sep + stem + ".svg";
+					nameEdit.setText(newname);
+				}
+				else if(checkedId == R.id.pdfRadio)
+				{
+					String newname = path + FileUtils.sep + stem + ".pdf";
 					nameEdit.setText(newname);
 				}
 			}
@@ -270,6 +276,10 @@ public class PreviewActivity extends Activity {
             	else if(typeRadio.getCheckedRadioButtonId() == R.id.svgRadio)
             	{
             		type = TYPE_SVG;
+            	}
+            	else if(typeRadio.getCheckedRadioButtonId() == R.id.pdfRadio)
+            	{
+            		type = TYPE_PDF;
             	}
                 // a choice has been made!		
         		dialog.dismiss();
@@ -316,7 +326,8 @@ public class PreviewActivity extends Activity {
         		}
         		else
         		{
-        			m_imageView.setPath(p);
+        			m_imageView.setImage(m_gray);
+        			m_imageView.setSVGFile(FileUtils.tempSvgFile());
         		}
         		return;
         	}
@@ -377,7 +388,7 @@ public class PreviewActivity extends Activity {
     private void endCrop()
     {
 		m_ok.setText(R.string.next);
-		m_cancel.setText(android.R.string.cancel);
+		m_cancel.setText(R.string.quit);
 		m_state = STATE_CROPPED;
 		m_imageView.endCrop();
     }
@@ -401,6 +412,10 @@ public class PreviewActivity extends Activity {
 			else if(m_type == TYPE_SVG)
 			{
 				ret = Utils.saveSVG(m_name, m_mono.getWidth(), m_mono.getHeight());
+			}
+			else if(m_type == TYPE_PDF)
+			{
+				ret = Utils.savePDF(m_name, m_mono.getWidth(), m_mono.getHeight());
 			}
             Message msg = m_handler.obtainMessage(0, ret);
             m_handler.sendMessage(msg);

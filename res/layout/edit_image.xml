@@ -16,7 +16,7 @@
           android:id="@+id/cancelButton"
           android:layout_width="fill_parent"
           android:layout_height="wrap_content"
-          android:text="@android:string/cancel"
+          android:text="@string/quit"
           android:textSize="12sp"
           android:layout_weight="1.0" />
     </LinearLayout>
