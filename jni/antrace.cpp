@@ -1312,10 +1312,6 @@ jobject createPath(JNIEnv* env, potrace_path_t* path)
 	return ret;
 }
 
-JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_unsharpMask(JNIEnv* env, jobject thiz, jobject bitmap)
-{
-}
-
 JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_traceImage(JNIEnv* env, jobject thiz, jobject bitmap)
 {
 	AndroidBitmapInfo info;
@@ -1476,9 +1472,204 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_threshold(JNIEnv
 	AndroidBitmap_unlockPixels(env, output);
 }
 
-void unsharpMask(void* src_pixels, void* dst_pixels, int w, int h, int stride)
+void unsharpMask(void* src_pixels, void* dst_pixels, int w, int h, int stride, int radius)
 {
+    pixel32_t* input = reinterpret_cast<pixel32_t*>(src_pixels);
+    pixel32_t* output = reinterpret_cast<pixel32_t*>(dst_pixels);
+	int wm = w - 1;
+	int hm = h - 1;
+	int wh = w * h;
+	int whMax = max(w, h);
+	int div = radius + radius + 1;
 
+	int rsum, x, y, i, yp, yi, yw;
+	pixel32_t p;
+	int vmin[whMax];
+
+	int divsum = (div + 1) >> 1;
+	divsum *= divsum;
+	int dv[256 * divsum];
+	for (i = 0; i < 256 * divsum; i++) {
+		dv[i] = (i / divsum);
+	}
+
+	yw = yi = 0;
+
+	int stack[div];
+	int stackpointer;
+	int stackstart;
+	int rbs;
+	int ir;
+	int ip;
+	int r1 = radius + 1;
+	int routsum;
+	int rinsum;
+	{
+		for (y = 0; y < h; y++) {
+			rinsum = routsum = rsum = 0;
+			for (i = -radius; i <= radius; i++) {
+				p = input[yi + min(wm, max(i, 0))];
+
+				ir = i + radius; // same as sir
+
+				stack[ir] = p.rgba8[0];
+				rbs = r1 - abs(i);
+				rsum += stack[ir] * rbs;
+				if (i > 0) {
+					rinsum += stack[ir];
+				} else {
+					routsum += stack[ir];
+				}
+			}
+			stackpointer = radius;
+
+			for (x = 0; x < w; x++) {
+
+				input[yi].rgba8[1] = (uint8_t)dv[rsum];
+				rsum -= routsum;
+
+				stackstart = stackpointer - radius + div;
+				ir = stackstart % div; // same as sir
+
+				routsum -= stack[ir];
+
+				if (y == 0) {
+					vmin[x] = min(x + radius + 1, wm);
+				}
+				p = input[yw + vmin[x]];
+
+				stack[ir] = p.rgba8[0];
+
+				rinsum += stack[ir];
+				rsum += rinsum;
+
+				stackpointer = (stackpointer + 1) % div;
+				ir = (stackpointer) % div; // same as sir
+
+				routsum += stack[ir];
+				rinsum -= stack[ir];
+
+				yi++;
+			}
+			yw += w;
+		}
+
+		for (x = 0; x < w; x++) {
+			rinsum = routsum = rsum = 0;
+			yp = -radius * w;
+			for (i = -radius; i <= radius; i++) {
+				yi = max(0, yp) + x;
+
+				ir = i + radius; // same as sir
+				stack[ir] = input[yi].rgba8[1];
+				rbs = r1 - abs(i);
+				rsum += input[yi].rgba8[1] * rbs;
+
+				if (i > 0) {
+					rinsum += stack[ir];
+				} else {
+					routsum += stack[ir];
+				}
+
+				if (i < hm) {
+					yp += w;
+				}
+			}
+			yi = x;
+			stackpointer = radius;
+			for (y = 0; y < h; y++) {
+				output[yi].rgba8[0] = (uint8_t)dv[rsum];
+
+				rsum -= routsum;
+
+				stackstart = stackpointer - radius + div;
+				ir = stackstart % div; // same as sir
+
+				routsum -= stack[ir];
+
+				if (x == 0) vmin[y] = min(y + r1, hm) * w;
+				ip = x + vmin[y];
+
+				stack[ir] = input[ip].rgba8[1];
+
+				rinsum += stack[ir];
+
+				rsum += rinsum;
+
+				stackpointer = (stackpointer + 1) % div;
+				ir = stackpointer; // same as sir
+
+				routsum += stack[ir];
+				rinsum -= stack[ir];
+
+				yi += w;
+			}
+		}
+	}
+	for (x = 0; x < w; x++) {
+		for (y = 0; y < h; y++) {
+			output[i].rgba8[1] = output[i].rgba8[2] = output[i].rgba8[0];
+			++i;
+		}
+	}
+	int threshold = 0;
+	int amount = 70;
+	i = 0;
+	for (x = 0; x < w; x++) {
+		for (y = 0; y < h; y++) {
+            int d = input[i].rgba8[0] - output[i].rgba8[0];
+            if (abs(2*d) < threshold)
+                d = 0 ;
+            int p = input[i].rgba8[0] + amount * d / 100;
+            if(p < 0)
+            {
+            	p = 0;
+            }
+
+            if(p > 255)
+            {
+            	p = 255;
+            }
+            unsigned char pixel = (unsigned char)p;
+			output[i].rgba8[1] = output[i].rgba8[2] = output[i].rgba8[0] = p;
+			++i;
+		}
+	}
+}
+
+JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_unsharpMask(JNIEnv* env, jobject thiz, jobject input, jobject output)
+{
+	AndroidBitmapInfo inputInfo;
+	AndroidBitmapInfo outputInfo;
+	void* src_pixels = 0;
+	void* dst_pixels = 0;
+	int ret = 0;
+
+	if ((ret = AndroidBitmap_getInfo(env, input, &inputInfo)) < 0) {
+		return;
+	}
+
+	if (inputInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+		return;
+	}
+	if ((ret = AndroidBitmap_lockPixels(env, input, &src_pixels)) < 0) {
+		return;
+	}
+
+	if ((ret = AndroidBitmap_getInfo(env, output, &outputInfo)) < 0) {
+		return;
+	}
+
+	if (outputInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+		return;
+	}
+	if ((ret = AndroidBitmap_lockPixels(env, output, &dst_pixels)) < 0) {
+		return;
+	}
+
+	unsharpMask(src_pixels, dst_pixels, outputInfo.width, outputInfo.height, inputInfo.stride, 5);
+	AndroidBitmap_unlockPixels(env, input);
+	AndroidBitmap_unlockPixels(env, output);
 }
 
 void histogramNormalize(void* src_pixels, void* dst_pixels, int w, int h, int stride, int32_t histogram[])
@@ -1552,6 +1743,7 @@ void histogramNormalize(void* src_pixels, void* dst_pixels, int w, int h, int st
 	}
 }
 
+
 JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_grayScale( JNIEnv* env, jobject thiz, jobject input, jobject output )
 {
 	AndroidBitmapInfo inputInfo;
@@ -1616,6 +1808,7 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_grayScale( JNIEn
 	    src_pixels = reinterpret_cast<char*>(src_pixels) + inputInfo.stride;
 	}
 
+	unsharpMask(src_start, dst_start, outputInfo.width, outputInfo.height, inputInfo.stride, 5);
 	histogramNormalize(src_start, dst_start, outputInfo.width, outputInfo.height, inputInfo.stride, histogram);
 	/*
 	int32_t threshold_intensity, intense;

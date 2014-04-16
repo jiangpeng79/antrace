@@ -2,18 +2,23 @@ package com.jiangpeng.android.antrace;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 import com.jiangpeng.android.antrace.Objects.path;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.PointF;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -433,6 +438,12 @@ public class PreviewActivity extends Activity {
     			{
     				m_gray = Bitmap.createBitmap(bm);
     				Utils.grayScale(bm, m_gray);
+    				/*
+    				saveToFile(m_gray, FileUtils.getRootFolder() + FileUtils.sep + "gray.png");
+    				Utils.unsharpMask(m_gray, bm);
+    				m_gray = bm;
+    				saveToFile(m_gray, FileUtils.getRootFolder() + FileUtils.sep + "after.png");
+    				*/
     			}
     	        catch(OutOfMemoryError err)
     	        {
@@ -609,4 +620,68 @@ public class PreviewActivity extends Activity {
 		Utils.clearState();
 	}
 
+	private Uri saveToFile(Bitmap bmp, String tempfile)
+	{
+		FileOutputStream out;
+		try
+		{
+			out = new FileOutputStream(tempfile);
+		} 
+		catch (FileNotFoundException e)
+		{
+    		return null;
+    	}
+    	if(!bmp.compress(Bitmap.CompressFormat.PNG, 90, out))
+    	{
+    		return null;
+    	}
+    	try
+    	{
+    		out.flush();
+    		out.close();
+    	} 
+    	catch (IOException e)
+    	{
+    		return null;
+    	}
+    	
+    	String[] s = {BaseColumns._ID, MediaColumns.DATA};
+    	String sel = "_data=?";
+    	String[] args = { tempfile };
+    	Cursor cursor = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, s, sel, args, null);
+    		
+    	ContentValues values = new ContentValues(); 	
+    	values.put(Media.TITLE, "Image");
+    	values.put(Images.Media.BUCKET_ID, tempfile.hashCode());
+    	values.put(Images.Media.BUCKET_DISPLAY_NAME, "Watermark Blank");
+    	values.put(Images.Media.MIME_TYPE, "image/jpeg");
+    	values.put(Media.DESCRIPTION, "Watermark Blank Result");
+    	values.put("_data", tempfile);
+
+    	Uri u = null;
+    	if(cursor != null)
+    	{
+    		if(cursor.moveToFirst())
+    		//while(cursor.moveToNext())
+    		{
+    			int imageID = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID));
+    			Uri uri = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, Integer.toString(imageID));
+    			
+    			getContentResolver().update(uri, values, null, null);
+    			u = uri;
+    			//m_imageContext.activity.getContentResolver().delete(uri, null, null);
+    		}
+    		else
+    		{
+    			u = getContentResolver().insert( Media.EXTERNAL_CONTENT_URI , values);
+    		}
+   			cursor.close();
+    	}
+   		else
+   		{
+   			u = getContentResolver().insert( Media.EXTERNAL_CONTENT_URI , values);
+   		}
+    	
+    	return u;
+	}
 }
