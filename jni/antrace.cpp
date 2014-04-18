@@ -1431,41 +1431,42 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_threshold(JNIEnv
 		return;
 	}
 
-	const int kShiftBits = 20;
-	const int32_t kRedRatio = static_cast<int32_t>((1 << kShiftBits) * 0.21f);
-	const int32_t kGreenRatio = static_cast<int32_t>((1 << kShiftBits) * 0.71f);
-	const int32_t kBlueRatio = static_cast<int32_t>((1 << kShiftBits) * 0.07f);
-	for (uint32_t scan_line = 0; scan_line < outputInfo.height; scan_line++) {
-	    uint32_t* dst = reinterpret_cast<uint32_t*>(dst_pixels);
-	    pixel32_t* src = reinterpret_cast<pixel32_t*>(src_pixels);
-	    pixel32_t* src_line_end = src + inputInfo.width;
-	    int y = 0;
-	    while (src < src_line_end) {
-	    	int32_t src_red = src->rgba8[0];
-	    	int32_t src_green = src->rgba8[1];
-	    	int32_t src_blue = src->rgba8[2];
-	    	int32_t src_alpha = src->rgba8[3];
+	if(dst_pixels != 0 && src_pixels != 0)
+	{
+		const int kShiftBits = 20;
+		const int32_t kRedRatio = static_cast<int32_t>((1 << kShiftBits) * 0.21f);
+		const int32_t kGreenRatio = static_cast<int32_t>((1 << kShiftBits) * 0.71f);
+		const int32_t kBlueRatio = static_cast<int32_t>((1 << kShiftBits) * 0.07f);
+		for (uint32_t scan_line = 0; scan_line < outputInfo.height; scan_line++) {
+			uint32_t* dst = reinterpret_cast<uint32_t*>(dst_pixels);
+			pixel32_t* src = reinterpret_cast<pixel32_t*>(src_pixels);
+			pixel32_t* src_line_end = src + inputInfo.width;
+			while (src < src_line_end) {
+				int32_t src_red = src->rgba8[0];
+				int32_t src_green = src->rgba8[1];
+				int32_t src_blue = src->rgba8[2];
+				int32_t src_alpha = src->rgba8[3];
 
-	    	int32_t dst_color = src_red;
-	    	if(src_red != src_green || src_green != src_blue)
-	    	{
-	    		dst_color = (kRedRatio * src_red + kGreenRatio * src_green +
-	    				kBlueRatio * src_blue) >> kShiftBits;
-	    	}
-	    	if (dst_color > t) {
-	    		dst_color = 255;
-	    	}
-	    	else
-	    	{
-	    		dst_color = 0;
-	    	}
-	    	*dst = (src_alpha << 24) | (dst_color << 16) | (dst_color << 8) | dst_color;
-	    	dst++;
-	    	src++;
-	    	++y;
-	    }
-	    dst_pixels = reinterpret_cast<char*>(dst_pixels) + outputInfo.stride;
-	    src_pixels = reinterpret_cast<char*>(src_pixels) + inputInfo.stride;
+				int32_t dst_color = src_red;
+				if(src_red != src_green || src_green != src_blue)
+				{
+					dst_color = (kRedRatio * src_red + kGreenRatio * src_green +
+							kBlueRatio * src_blue) >> kShiftBits;
+				}
+				if (dst_color > t) {
+					dst_color = 255;
+				}
+				else
+				{
+					dst_color = 0;
+				}
+				*dst = (src_alpha << 24) | (dst_color << 16) | (dst_color << 8) | dst_color;
+				dst++;
+				src++;
+			}
+			dst_pixels = reinterpret_cast<char*>(dst_pixels) + outputInfo.stride;
+			src_pixels = reinterpret_cast<char*>(src_pixels) + inputInfo.stride;
+		}
 	}
 
 	AndroidBitmap_unlockPixels(env, input);
@@ -1474,8 +1475,8 @@ JNIEXPORT void JNICALL Java_com_jiangpeng_android_antrace_Utils_threshold(JNIEnv
 
 void unsharpMask(void* src_pixels, void* dst_pixels, int w, int h, int stride, int radius)
 {
-    pixel32_t* input = reinterpret_cast<pixel32_t*>(src_pixels);
-    pixel32_t* output = reinterpret_cast<pixel32_t*>(dst_pixels);
+	pixel32_t* input = reinterpret_cast<pixel32_t*>(src_pixels);
+	pixel32_t* output = reinterpret_cast<pixel32_t*>(dst_pixels);
 	int wm = w - 1;
 	int hm = h - 1;
 	int wh = w * h;

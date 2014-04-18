@@ -112,7 +112,11 @@ public class MainActivity extends Activity {
         }
     }
     */
-    
+	
+    static {
+        System.loadLibrary("antrace");
+    }
+
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         if(requestCode == CAMERA_STATUS_CODE && resultCode == RESULT_OK)

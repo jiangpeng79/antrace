@@ -67,10 +67,6 @@ public class PreviewActivity extends Activity {
     public static int TYPE_DXF = 2;
     public static int TYPE_PDF = 3;
     private int m_state = STATE_START;
-	
-    static {
-        System.loadLibrary("antrace");
-    }
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -171,8 +167,6 @@ public class PreviewActivity extends Activity {
             }
             else
             {
-                Bitmap bmp = (Bitmap)msg.obj;
-                m_mono = bmp;
                 m_imageView.setImage(m_mono);
                 m_progressBar.setVisibility(View.INVISIBLE);
             }
@@ -188,10 +182,9 @@ public class PreviewActivity extends Activity {
 		}
 		@Override
 		public void run() {
-    		Bitmap bnw = Bitmap.createBitmap(m_gray.getWidth(), m_gray.getHeight(), Bitmap.Config.ARGB_8888);
-    		Utils.threshold(m_gray, m_value, bnw);
+    		Utils.threshold(m_gray, m_value, m_mono);
 			m_processed = m_value;
-            Message msg = m_thresholdHandler.obtainMessage(m_value, bnw);
+            Message msg = m_thresholdHandler.obtainMessage(m_value, m_mono);
             m_thresholdHandler.sendMessage(msg);
 		}
 	}
@@ -381,6 +374,7 @@ public class PreviewActivity extends Activity {
             	if(m_state == STATE_CROPPED)
             	{
             		m_gray = bmp;
+            		m_mono = Bitmap.createBitmap(m_gray.getWidth(), m_gray.getHeight(), Bitmap.Config.ARGB_8888);
             		m_thresholdSeek.setVisibility(View.VISIBLE);
             		checkAndStartThreshold(127);
             		m_state = STATE_MONO;
