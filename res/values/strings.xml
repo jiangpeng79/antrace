@@ -14,7 +14,7 @@
     <string name="save">Save</string>
     <string name="crop">Crop</string>
     <string name="next">Next</string>
-    <string name="skip">Skip</string>
+    <string name="skip">Next</string>
     <string name="quit">Quit</string>
     <string name="trace_failed">Trace failed..</string>
     <string name="save_failed">Save failed..</string>

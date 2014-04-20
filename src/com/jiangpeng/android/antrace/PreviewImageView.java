@@ -55,6 +55,7 @@ public class PreviewImageView extends ImageView {
     private Matrix m_screenToImage = new Matrix();
     private Bitmap m_bitmap = null;
     private Paint m_paint = new Paint();
+    private Paint m_black = new Paint();
     private boolean m_isCropping = false;
     private PointF m_leftTop = new PointF();
     private PointF m_rightTop = new PointF();
@@ -306,6 +307,9 @@ public class PreviewImageView extends ImageView {
 		if(m_svgPicture != null)
 		{
 			RectF rc = getImageRect();
+			m_black.setColor(Color.GRAY);
+			m_black.setStyle(Paint.Style.FILL);
+			canvas.drawRect(rc, m_black);
 			canvas.drawPicture(m_svgPicture, rc);
 			return;
 		}
