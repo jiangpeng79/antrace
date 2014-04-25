@@ -1,17 +1,24 @@
 package com.jiangpeng.android.antrace;
 import java.io.File;
 
+import com.google.ads.AdRequest;
+import com.google.ads.AdSize;
+
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
@@ -23,7 +30,7 @@ public class MainActivity extends Activity {
 	Button m_takePicture = null;
 	Button m_selectPicture = null;
 	Button m_about = null;
-    protected String m_photoFile = "/sdcard/__antrace_tmp";
+    protected String m_photoFile = "";
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -38,21 +45,25 @@ public class MainActivity extends Activity {
         OnClickListener selectListener = new SelectPictureListener();
         m_selectPicture.setOnClickListener(selectListener);
 
-        /*
         OnClickListener aboutListener = new AboutListener();
         m_about.setOnClickListener(aboutListener);
-        */
 
 		m_photoFile = FileUtils.getRootFolder() + FileUtils.sep + FileUtils.TEMP_FOLDER + FileUtils.sep + PHOTO_FILE_TEMP_;
 		FileUtils.checkAndCreateFolder(FileUtils.getRootFolder() + FileUtils.sep + FileUtils.TEMP_FOLDER);
+
+        LinearLayout layout = (LinearLayout)findViewById(R.id.adLayout);
+        com.google.ads.AdView adView = new com.google.ads.AdView(this, AdSize.BANNER, AdmobID.id);
+        layout.addView(adView);
+        adView.loadAd(new AdRequest());
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
+//		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
+
     class TakePictureListener implements OnClickListener
     {
         @Override
@@ -84,7 +95,6 @@ public class MainActivity extends Activity {
         }
     }
     
-    /*
     class AboutListener implements OnClickListener
     {
         @Override
@@ -94,7 +104,7 @@ public class MainActivity extends Activity {
         	View v = getLayoutInflater().inflate(R.layout.about_dialog, (ViewGroup) findViewById(R.id.about_layout));
         	//TextView tv = (TextView) v.findViewById(R.id.appVersion);
         	String ver = getResources().getString(R.string.app_version, getResources().getString(R.string.app_name),
-        			CommonUtils.getCurrentVersionName(MainActivity.this));
+        			Utils.getCurrentVersionName(MainActivity.this));
         	builder.setTitle(ver);
         	//tv.setText(ver);
         	builder.setView(v);
@@ -111,7 +121,6 @@ public class MainActivity extends Activity {
         	dialog.show();
         }
     }
-    */
 	
     static {
         System.loadLibrary("antrace");

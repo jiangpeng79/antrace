@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <string name="app_name">antrace</string>
+    <string name="app_name">Photo2Vector</string>
     <string name="action_settings">Settings</string>
     <string name="take_a_photo">Take a photo</string>
     <string name="select_a_photo">Select a photo</string>
     <string name="about">About</string>  
     <string name="empty"></string>
-    <string name="loading">Loading..</string>
+    <string name="loading">Please wait..</string>
     <string name="check_your_files">Failed loading, file is corrupt or out of memory!\nPlease try again</string>
     <string name="please_input">Please specify file format and file name:</string>
     <string name="save_to_file">Save to file</string>
@@ -18,4 +17,9 @@
     <string name="quit">Quit</string>
     <string name="trace_failed">Trace failed..</string>
     <string name="save_failed">Save failed..</string>
+    <string name="email_author">This app is a port and fron end of potrace on Android! Any problems or suggestions please email:</string>
+    <string name="email_address">jiang.peng1997@gmail.com</string>
+    <string name="project_see">This is an open source project, more information please see:</string>
+    <string name="project_address">https://github.com/jiangpeng79/antrace</string>
+    <string name="app_version">%1$s %2$s\n</string>
 </resources>

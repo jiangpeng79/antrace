@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/about_layout"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent" 
+  android:orientation="vertical">
+    <ScrollView android:layout_width="fill_parent" android:layout_height="fill_parent">
+    <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/linearLayout1" android:orientation="vertical" android:padding="4dp">
+    <TextView android:id="@+id/textView1" android:paddingLeft="12dp" android:paddingRight="12dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/email_author" android:textSize="14sp"></TextView>
+    <TextView android:clickable="true" android:paddingLeft="12dp" android:paddingRight="12dp" android:id="@+id/textView2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:autoLink="email" android:text="@string/email_address" android:linksClickable="true" android:textSize="14sp"></TextView>
+    <TextView android:id="@+id/textView3" android:paddingLeft="12dp" android:paddingRight="12dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/project_see" android:textSize="14sp"></TextView>
+    <TextView android:clickable="true" android:paddingLeft="12dp" android:paddingRight="12dp" android:id="@+id/textView3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:autoLink="web" android:text="@string/project_address" android:linksClickable="true" android:textSize="14sp"></TextView>
+    </LinearLayout>
+    </ScrollView>
+</LinearLayout>
