@@ -1,5 +1,6 @@
 package com.jiangpeng.android.antrace;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -16,6 +17,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.net.Uri;
@@ -30,6 +32,9 @@ import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout.LayoutParams;
@@ -44,6 +49,7 @@ public class PreviewActivity extends Activity {
 	private String m_filename = null;
 	private ProgressDialog m_progress = null;
 	private PreviewImageView m_imageView = null;
+	private WebView m_svgView = null;
 	private Bitmap m_gray = null;
 	private Bitmap m_mono = null;
 	private Button m_ok = null;
@@ -94,6 +100,19 @@ public class PreviewActivity extends Activity {
         m_thresholdSeek.setOnSeekBarChangeListener(thresholdListener);
         m_thresholdSeek.setVisibility(View.INVISIBLE);
         m_progressBar.setVisibility(View.INVISIBLE);
+        
+        m_svgView = (WebView)findViewById(R.id.svgPreviewView);
+        m_svgView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                view.loadUrl(url);
+                return true;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+            }
+        });
 	}
 
 	@Override
@@ -325,7 +344,19 @@ public class PreviewActivity extends Activity {
         		else
         		{
         			m_imageView.setImage(m_gray);
-        			m_imageView.setSVGFile(FileUtils.tempSvgFile());
+//        			m_imageView.setSVGFile(FileUtils.tempSvgFile());
+        			m_imageView.setVisibility(View.GONE);
+        			m_svgView.setVisibility(View.VISIBLE);
+        			m_svgView.setBackgroundColor(Color.GRAY);
+        	        WebSettings s = m_svgView.getSettings();
+        	        s.setLoadWithOverviewMode(true);
+        	        s.setLoadsImagesAutomatically(true);
+        	        s.setUseWideViewPort(true);
+        	        s.setSupportZoom(true);
+        	        s.setBuiltInZoomControls(true);
+
+        	        String url = "file:///" + FileUtils.tempSvgFile();
+        	        m_svgView.loadUrl(url);
         		}
         		return;
         	}
@@ -456,11 +487,22 @@ public class PreviewActivity extends Activity {
     		if(m_gray != null)
     		{
 				path p = Utils.traceImage(m_mono);
-
 				String svgFile = FileUtils.tempSvgFile();
-				Utils.saveSVG(svgFile, m_mono.getWidth(), m_mono.getHeight());
-                Message msg = m_handler.obtainMessage(0, p);
-                m_handler.sendMessage(msg);
+				if(!Utils.saveSVG(svgFile, m_mono.getWidth(), m_mono.getHeight()))
+				{
+					Message msg = m_handler.obtainMessage(0, null);
+					m_handler.sendMessage(msg);
+					return;
+				}
+				File file = new File(svgFile);
+				if(!file.exists())
+				{
+					Message msg = m_handler.obtainMessage(0, null);
+					m_handler.sendMessage(msg);
+					return;
+				}
+				Message msg = m_handler.obtainMessage(0, p);
+				m_handler.sendMessage(msg);
     		}
 		}
 	};
@@ -497,17 +539,55 @@ public class PreviewActivity extends Activity {
     		    		m_imageView.getLeftBottom().x,
     		    		m_imageView.getLeftBottom().y
     		    };
+    		    
+    		    float l = src[0];
+    		    float t = src[1];
+    		    float r = src[0];
+    		    float b = src[1];
+    		    for(int i = 0; i < 4; ++i)
+    		    {
+    		    	if(src[i * 2] > r)
+    		    	{
+    		    		r = src[i * 2];
+    		    	}
+
+    		    	if(src[i * 2] < l)
+    		    	{
+    		    		l = src[i * 2];
+    		    	}
+
+    		    	if(src[i * 2 + 1] < t)
+    		    	{
+    		    		t = src[i * 2 + 1];
+    		    	}
+
+    		    	if(src[i * 2 + 1] > b)
+    		    	{
+    		    		b = src[i * 2 + 1];
+    		    	}
+    		    }
+    		    Bitmap ret = Bitmap.createBitmap(m_gray, (int)l, (int)t, (int)(r - l), (int)(b - t), matrix, true);
 
     		    float[] o = new float[]
     		    		{
-    		    		0, 0, m_gray.getWidth(), 0, m_gray.getWidth(), m_gray.getHeight(), 0, m_gray.getHeight()
+    		    		0, 0, ret.getWidth(), 0, ret.getWidth(), ret.getHeight(), 0, ret.getHeight()
     		    		};
+    		    src = new float[] {
+    		    		m_imageView.getLeftTop().x - l,
+    		    		m_imageView.getLeftTop().y - t,
+    		    		m_imageView.getRightTop().x - l,
+    		    		m_imageView.getRightTop().y - t,
+    		    		m_imageView.getRightBottom().x - l,
+    		    		m_imageView.getRightBottom().y - t,
+    		    		m_imageView.getLeftBottom().x - l,
+    		    		m_imageView.getLeftBottom().y - t
+    		    };
 //    		    float[] newpts = new float[8];
     		    float[] newo = new float[8];
     		    matrix.setPolyToPoly(src, 0, dst, 0, 4);
 //    		    matrix.mapPoints(newpts, src);
     		    matrix.mapPoints(newo, o);
-    		    Bitmap ret = Bitmap.createBitmap(m_gray, 0, 0, (int)m_gray.getWidth(), (int)m_gray.getHeight(), matrix, true);
+    		    ret = Bitmap.createBitmap(ret, 0, 0, (int)ret.getWidth(), (int)ret.getHeight(), matrix, true);
     		    matrix.reset();
     		    float lowx = newo[0];
     		    float lowy = newo[1];

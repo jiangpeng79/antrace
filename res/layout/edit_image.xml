@@ -40,6 +40,9 @@
   <com.jiangpeng.android.antrace.PreviewImageView android:id="@+id/previewImageView" 
     android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_above="@id/sliderLayout"/>
 
+  <WebView android:id="@+id/svgPreviewView" 
+    android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_above="@id/sliderLayout" android:visibility="gone"/>
+
   <ProgressBar
       android:id="@+id/thresholdProgress"
       style="?android:attr/progressBarStyleLarge"

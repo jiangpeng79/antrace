@@ -51,6 +51,10 @@ public class MainActivity extends Activity {
 		m_photoFile = FileUtils.getRootFolder() + FileUtils.sep + FileUtils.TEMP_FOLDER + FileUtils.sep + PHOTO_FILE_TEMP_;
 		FileUtils.checkAndCreateFolder(FileUtils.getRootFolder() + FileUtils.sep + FileUtils.TEMP_FOLDER);
 
+		String svgFile = FileUtils.tempSvgFile();
+        File file = new File(svgFile);
+        file.delete();
+
         LinearLayout layout = (LinearLayout)findViewById(R.id.adLayout);
         com.google.ads.AdView adView = new com.google.ads.AdView(this, AdSize.BANNER, AdmobID.id);
         layout.addView(adView);

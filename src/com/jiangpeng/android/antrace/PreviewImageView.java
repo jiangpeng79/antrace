@@ -1,14 +1,6 @@
 package com.jiangpeng.android.antrace;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-
-import com.caverock.androidsvg.SVG;
-import com.caverock.androidsvg.SVGParseException;
-import com.jiangpeng.android.antrace.Objects.curve;
 import com.jiangpeng.android.antrace.Objects.dpoint;
-import com.jiangpeng.android.antrace.Objects.path;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -16,19 +8,14 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Picture;
 import android.graphics.PointF;
 import android.graphics.RectF;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.PictureDrawable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.View.OnTouchListener;
 import android.widget.ImageView;
 
 public class PreviewImageView extends ImageView {
@@ -70,25 +57,6 @@ public class PreviewImageView extends ImageView {
     // Remember some things for zooming
     private PointF m_start = new PointF();
     private PointF m_last = new PointF();
-    
-    public void setSVGFile(String name)
-    {
-		InputStream svgstr;
-		try {
-			svgstr = new FileInputStream(name);
-		} catch (FileNotFoundException e1) {
-			e1.printStackTrace();
-			return;
-		}
-		SVG svg = null;
-		try {
-			svg = SVG.getFromInputStream(svgstr);
-		} catch (SVGParseException e) {
-			return;
-		}    	
-		m_svgPicture = svg.renderToPicture();
-    	invalidate();
-    }
     
     public void startCrop()
     {
@@ -303,7 +271,7 @@ public class PreviewImageView extends ImageView {
     @Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-
+		/*
 		if(m_svgPicture != null)
 		{
 			RectF rc = getImageRect();
@@ -313,6 +281,7 @@ public class PreviewImageView extends ImageView {
 			canvas.drawPicture(m_svgPicture, rc);
 			return;
 		}
+		*/
 		if(m_isCropping)
 		{
 			float[] pts = new float[16];
