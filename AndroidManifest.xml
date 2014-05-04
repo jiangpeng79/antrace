@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.jiangpeng.android.antrace"
     android:versionCode="1"
-    android:versionName="0.2" >
+    android:versionName="0.2.0" >
 
     <uses-sdk
         android:minSdkVersion="10"

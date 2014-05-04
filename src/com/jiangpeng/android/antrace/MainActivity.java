@@ -134,6 +134,7 @@ public class MainActivity extends Activity {
 	protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         if(requestCode == CAMERA_STATUS_CODE && resultCode == RESULT_OK)
         {
+            launchPreviewActivity(m_photoFile);
             super.onActivityResult(requestCode, resultCode, intent);
             return;
         }
@@ -149,8 +150,7 @@ public class MainActivity extends Activity {
             String filePath = cursor.getString(columnIndex);
             cursor.close();
             
-            m_photoFile = filePath;
-            launchPreviewActivity(m_photoFile);
+            launchPreviewActivity(filePath);
         }
         super.onActivityResult(requestCode, resultCode, intent);
 	}

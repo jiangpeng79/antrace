@@ -566,62 +566,67 @@ public class PreviewActivity extends Activity {
     		    		b = src[i * 2 + 1];
     		    	}
     		    }
-    		    Bitmap ret = Bitmap.createBitmap(m_gray, (int)l, (int)t, (int)(r - l), (int)(b - t), matrix, true);
-
-    		    float[] o = new float[]
-    		    		{
-    		    		0, 0, ret.getWidth(), 0, ret.getWidth(), ret.getHeight(), 0, ret.getHeight()
-    		    		};
-    		    src = new float[] {
-    		    		m_imageView.getLeftTop().x - l,
-    		    		m_imageView.getLeftTop().y - t,
-    		    		m_imageView.getRightTop().x - l,
-    		    		m_imageView.getRightTop().y - t,
-    		    		m_imageView.getRightBottom().x - l,
-    		    		m_imageView.getRightBottom().y - t,
-    		    		m_imageView.getLeftBottom().x - l,
-    		    		m_imageView.getLeftBottom().y - t
-    		    };
-//    		    float[] newpts = new float[8];
-    		    float[] newo = new float[8];
-    		    matrix.setPolyToPoly(src, 0, dst, 0, 4);
-//    		    matrix.mapPoints(newpts, src);
-    		    matrix.mapPoints(newo, o);
-    		    ret = Bitmap.createBitmap(ret, 0, 0, (int)ret.getWidth(), (int)ret.getHeight(), matrix, true);
-    		    matrix.reset();
-    		    float lowx = newo[0];
-    		    float lowy = newo[1];
-    		    for(int i = 1; i < 4; ++i)
+    		    Bitmap ret = null;
+    		    try
     		    {
-    		    	if(lowx > newo[i * 2])
-    		    	{
-    		    		lowx = newo[i * 2];
-    		    	}
+    		    	ret = Bitmap.createBitmap(m_gray, (int)l, (int)t, (int)(r - l), (int)(b - t), matrix, true);
 
-    		    	if(lowy > newo[i * 2 + 1])
+    		    	float[] o = new float[]
+    		    			{
+    		    			0, 0, ret.getWidth(), 0, ret.getWidth(), ret.getHeight(), 0, ret.getHeight()
+    		    			};
+    		    	src = new float[] {
+    		    			m_imageView.getLeftTop().x - l,
+    		    			m_imageView.getLeftTop().y - t,
+    		    			m_imageView.getRightTop().x - l,
+    		    			m_imageView.getRightTop().y - t,
+    		    			m_imageView.getRightBottom().x - l,
+    		    			m_imageView.getRightBottom().y - t,
+    		    			m_imageView.getLeftBottom().x - l,
+    		    			m_imageView.getLeftBottom().y - t
+    		    	};
+    		    	float[] newo = new float[8];
+    		    	matrix.setPolyToPoly(src, 0, dst, 0, 4);
+    		    	matrix.mapPoints(newo, o);
+    		    	ret = Bitmap.createBitmap(ret, 0, 0, (int)ret.getWidth(), (int)ret.getHeight(), matrix, true);
+    		    	matrix.reset();
+    		    	float lowx = newo[0];
+    		    	float lowy = newo[1];
+    		    	for(int i = 1; i < 4; ++i)
     		    	{
-    		    		lowy = newo[i * 2 + 1];
+    		    		if(lowx > newo[i * 2])
+    		    		{
+    		    			lowx = newo[i * 2];
+    		    		}
+
+    		    		if(lowy > newo[i * 2 + 1])
+    		    		{
+    		    			lowy = newo[i * 2 + 1];
+    		    		}
     		    	}
+    		    	ret = Bitmap.createBitmap(ret, -1 * (int)lowx, -1 * (int)lowy, (int)w, (int)h, matrix, true);
     		    }
-    		    ret = Bitmap.createBitmap(ret, -1 * (int)lowx, -1 * (int)lowy, (int)w, (int)h, matrix, true);
+    		    catch(OutOfMemoryError err)
+    		    {
+    		    } 
     		    /*
     		    int nw = ret.getWidth();
     		    int nh = ret.getHeight();
-    		    */
-                Message msg = m_handler.obtainMessage(0, ret);
-                m_handler.sendMessage(msg);
+    		     */
+    		    Message msg = m_handler.obtainMessage(0, ret);
+    		    m_handler.sendMessage(msg);
     		}
 		}
 	};
-	
+
 	class LoadImageThread implements Runnable
 	{
 		@Override
 		public void run() {
 			if(m_filename == null || m_filename.length() == 0)
 			{
-            	Message msg = m_handler.obtainMessage(0, null);
-            	m_handler.sendMessage(msg);
+				Message msg = m_handler.obtainMessage(0, null);
+				m_handler.sendMessage(msg);
             	return;
 			}
 			m_ops = ImageUtils.getBmpOptions(m_filename);

@@ -17,7 +17,7 @@
     <string name="quit">Quit</string>
     <string name="trace_failed">Trace failed..</string>
     <string name="save_failed">Save failed..</string>
-    <string name="email_author">This app is a port and fron end of potrace on Android! Any problems or suggestions please email:</string>
+    <string name="email_author">This app is a port and front end of potrace on Android! Any problems or suggestions please email:</string>
     <string name="email_address">jiang.peng1997@gmail.com</string>
     <string name="project_see">This is an open source project, more information please see:</string>
     <string name="project_address">https://github.com/jiangpeng79/antrace</string>
