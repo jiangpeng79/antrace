@@ -1,8 +1,9 @@
 package com.jiangpeng.android.antrace;
 import java.io.File;
 
-import com.google.ads.AdRequest;
-import com.google.ads.AdSize;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
 
 import android.net.Uri;
 import android.os.Bundle;
@@ -31,6 +32,7 @@ public class MainActivity extends Activity {
 	Button m_selectPicture = null;
 	Button m_about = null;
     protected String m_photoFile = "";
+    AdView m_adView = null;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -56,9 +58,31 @@ public class MainActivity extends Activity {
         file.delete();
 
         LinearLayout layout = (LinearLayout)findViewById(R.id.adLayout);
-        com.google.ads.AdView adView = new com.google.ads.AdView(this, AdSize.BANNER, AdmobID.id);
-        layout.addView(adView);
-        adView.loadAd(new AdRequest());
+        m_adView = new AdView(this);
+        m_adView.setAdUnitId(AdmobID.id);
+        m_adView.setAdSize(AdSize.BANNER);
+
+        AdRequest request = (new AdRequest.Builder()).build();
+        layout.addView(m_adView);
+        m_adView.loadAd(request);
+	}
+
+	@Override
+	protected void onDestroy() {
+		m_adView.destroy();
+		super.onDestroy();
+	}
+
+	@Override
+	protected void onPause() {
+		m_adView.pause();
+		super.onPause();
+	}
+
+	@Override
+	protected void onResume() {
+		m_adView.resume();
+		super.onResume();
 	}
 
 	@Override
