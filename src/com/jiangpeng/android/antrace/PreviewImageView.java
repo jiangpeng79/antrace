@@ -1,14 +1,11 @@
 package com.jiangpeng.android.antrace;
 
-import com.jiangpeng.android.antrace.Objects.dpoint;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Picture;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.AttributeSet;
@@ -42,7 +39,7 @@ public class PreviewImageView extends ImageView {
     private Matrix m_screenToImage = new Matrix();
     private Bitmap m_bitmap = null;
     private Paint m_paint = new Paint();
-    private Paint m_black = new Paint();
+//    private Paint m_black = new Paint();
     private boolean m_isCropping = false;
     private PointF m_leftTop = new PointF();
     private PointF m_rightTop = new PointF();
@@ -52,7 +49,7 @@ public class PreviewImageView extends ImageView {
     static final float MinSize = 80f;
     private int m_mode = NONE;
     private HitTestResult m_hitTest = HitTestResult.None;
-    private Picture m_svgPicture = null;
+//    private Picture m_svgPicture = null;
 
     // Remember some things for zooming
     private PointF m_start = new PointF();
@@ -172,6 +169,7 @@ public class PreviewImageView extends ImageView {
         }
     }
 
+    /*
     private float[] transform(dpoint dpt)
     {
     	float[] input = new float[2];
@@ -182,6 +180,7 @@ public class PreviewImageView extends ImageView {
     	m_imageToScreen.mapPoints(ret, input);
     	return ret;
     }
+    */
 
     private PointF toScreen(PointF pt)
     {

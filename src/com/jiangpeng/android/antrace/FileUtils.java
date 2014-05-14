@@ -2,12 +2,7 @@ package com.jiangpeng.android.antrace;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Comparator;
-
-import android.app.Activity;
-import android.content.Intent;
 import android.media.ExifInterface;
-import android.net.Uri;
 import android.os.Environment;
 
 public class FileUtils
