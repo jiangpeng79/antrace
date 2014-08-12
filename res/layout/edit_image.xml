@@ -9,14 +9,14 @@
           android:id="@+id/okButton"
           android:layout_width="fill_parent"
           android:layout_height="wrap_content"
-          android:text="@android:string/ok"
+          android:text="@string/next"
           android:textSize="12sp"
           android:layout_weight="1.0" />
       <Button
           android:id="@+id/cancelButton"
           android:layout_width="fill_parent"
           android:layout_height="wrap_content"
-          android:text="@string/quit"
+          android:text="@string/edit"
           android:textSize="12sp"
           android:layout_weight="1.0" />
     </LinearLayout>

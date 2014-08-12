@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 
+import com.jiangpeng.android.antrace.Objects.PerspectiveInteraction;
+import com.jiangpeng.android.antrace.Objects.RegularInteraction;
 import com.jiangpeng.android.antrace.Objects.path;
 
 import android.app.Activity;
@@ -51,7 +53,7 @@ public class PreviewActivity extends Activity {
     public static String FILENAME = "FILENAME";
     public static int STATE_START = 0;
     public static int STATE_LOADED = 1;
-    public static int STATE_CROPPED = 2;
+    public static int STATE_EDITED = 2;
     public static int STATE_MONO = 3;
     public static int STATE_TRACE = 4;
     public static int STATE_SAVE = 5;
@@ -67,6 +69,8 @@ public class PreviewActivity extends Activity {
         setContentView(R.layout.edit_image);
         
         m_imageView = (PreviewImageView)findViewById(R.id.previewImageView);
+        m_imageView.setInteraction(new RegularInteraction(m_imageView));
+        m_imageView.init();
         m_filename = this.getIntent().getStringExtra(PreviewActivity.FILENAME);
        	m_progress = ProgressDialog.show(this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 		Thread t = new Thread(new LoadImageThread());
@@ -118,12 +122,16 @@ public class PreviewActivity extends Activity {
 		public void onClick(View v) {
 			if(m_state == STATE_LOADED)
 			{
+				showEditDialog();
+				/*
 				m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 				Thread t = new Thread(new CropThread());
 				t.start();
+				*/
 				return;
 			}
-			if(m_state == STATE_CROPPED)
+			/*
+			if(m_state == STATE_EDITED)
 			{
 		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
 				Thread t = new Thread(new GrayscaleThread());
@@ -131,6 +139,8 @@ public class PreviewActivity extends Activity {
 				m_ok.setText(R.string.next);
 				return;
 			}
+			*/
+			/*
 			if(m_state == STATE_MONO)
 			{
 				m_thresholdSeek.setVisibility(View.INVISIBLE);
@@ -145,6 +155,8 @@ public class PreviewActivity extends Activity {
 				showSaveDialog();
 				return;
 			}
+			*/
+			finish();
 		}
 	};
 	
@@ -154,10 +166,35 @@ public class PreviewActivity extends Activity {
 	    public void onClick(View v) {
 			if(m_state == STATE_LOADED)
 			{
-				endCrop();
+		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
+				Thread t = new Thread(new GrayscaleThread());
+				m_ok.setText(R.string.quit);
+				t.start();
+				m_state = STATE_EDITED;
 				return;
 			}
-			finish();
+			if(m_state == STATE_EDITED)
+			{
+        		m_mono = Bitmap.createBitmap(m_gray.getWidth(), m_gray.getHeight(), Bitmap.Config.ARGB_8888);
+        		m_thresholdSeek.setVisibility(View.VISIBLE);
+        		checkAndStartThreshold(127);
+				return;
+			}
+			if(m_state == STATE_MONO)
+			{
+				m_thresholdSeek.setVisibility(View.INVISIBLE);
+		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
+				Thread t = new Thread(new TraceThread());
+				t.start();
+				m_cancel.setText(R.string.save);
+				return;
+			}
+			if(m_state == STATE_TRACE)
+			{
+				showSaveDialog();
+				return;
+			}
+//			finish();
 	    }
 	};
 	
@@ -377,19 +414,20 @@ public class PreviewActivity extends Activity {
             	if(m_state == STATE_START)
             	{
             		m_state = STATE_LOADED;
-            		m_ok.setText(R.string.crop);
-            		m_cancel.setText(R.string.skip);
+            		m_ok.setText(R.string.edit);
+            		m_cancel.setText(R.string.next);
             		m_gray = bmp;
-            		m_imageView.startCrop();
             		return;
             	}
             	if(m_state == STATE_LOADED)
             	{
+            		m_imageView.endCrop();
             		m_gray = bmp;
-            		endCrop();
+            		m_cancel.setText(R.string.next);
+//            		m_state = STATE_EDITED;
             		return;
             	}
-            	if(m_state == STATE_CROPPED)
+            	if(m_state == STATE_EDITED)
             	{
             		m_gray = bmp;
             		m_mono = Bitmap.createBitmap(m_gray.getWidth(), m_gray.getHeight(), Bitmap.Config.ARGB_8888);
@@ -402,6 +440,7 @@ public class PreviewActivity extends Activity {
         }
     };
     
+    /*
     private void endCrop()
     {
 		m_ok.setText(R.string.next);
@@ -409,6 +448,7 @@ public class PreviewActivity extends Activity {
 		m_state = STATE_CROPPED;
 		m_imageView.endCrop();
     }
+    */
 
 	class SaveFileThread implements Runnable
 	{
@@ -505,101 +545,7 @@ public class PreviewActivity extends Activity {
 		public void run() {
     		if(m_gray != null)
     		{
-    		    Matrix matrix = new Matrix();
-    		    float w1 = distance(m_imageView.getLeftBottom(), m_imageView.getRightBottom());
-    		    float w2 = distance(m_imageView.getRightTop(), m_imageView.getLeftTop());
-
-    		    float h1 = distance(m_imageView.getLeftBottom(), m_imageView.getLeftTop());
-    		    float h2 = distance(m_imageView.getRightTop(), m_imageView.getRightBottom());
-    		    float w = Math.max(w1, w2);
-    		    float h = Math.max(h1, h2);
-    		    float[] dst = new float[] {
-    		    		0, 0, w, 0, w, h, 0, h
-    		    };
-    		    float[] src = new float[] {
-    		    		m_imageView.getLeftTop().x,
-    		    		m_imageView.getLeftTop().y,
-    		    		m_imageView.getRightTop().x,
-    		    		m_imageView.getRightTop().y,
-    		    		m_imageView.getRightBottom().x,
-    		    		m_imageView.getRightBottom().y,
-    		    		m_imageView.getLeftBottom().x,
-    		    		m_imageView.getLeftBottom().y
-    		    };
-    		    
-    		    float l = src[0];
-    		    float t = src[1];
-    		    float r = src[0];
-    		    float b = src[1];
-    		    for(int i = 0; i < 4; ++i)
-    		    {
-    		    	if(src[i * 2] > r)
-    		    	{
-    		    		r = src[i * 2];
-    		    	}
-
-    		    	if(src[i * 2] < l)
-    		    	{
-    		    		l = src[i * 2];
-    		    	}
-
-    		    	if(src[i * 2 + 1] < t)
-    		    	{
-    		    		t = src[i * 2 + 1];
-    		    	}
-
-    		    	if(src[i * 2 + 1] > b)
-    		    	{
-    		    		b = src[i * 2 + 1];
-    		    	}
-    		    }
-    		    Bitmap ret = null;
-    		    try
-    		    {
-    		    	ret = Bitmap.createBitmap(m_gray, (int)l, (int)t, (int)(r - l), (int)(b - t), matrix, true);
-
-    		    	float[] o = new float[]
-    		    			{
-    		    			0, 0, ret.getWidth(), 0, ret.getWidth(), ret.getHeight(), 0, ret.getHeight()
-    		    			};
-    		    	src = new float[] {
-    		    			m_imageView.getLeftTop().x - l,
-    		    			m_imageView.getLeftTop().y - t,
-    		    			m_imageView.getRightTop().x - l,
-    		    			m_imageView.getRightTop().y - t,
-    		    			m_imageView.getRightBottom().x - l,
-    		    			m_imageView.getRightBottom().y - t,
-    		    			m_imageView.getLeftBottom().x - l,
-    		    			m_imageView.getLeftBottom().y - t
-    		    	};
-    		    	float[] newo = new float[8];
-    		    	matrix.setPolyToPoly(src, 0, dst, 0, 4);
-    		    	matrix.mapPoints(newo, o);
-    		    	ret = Bitmap.createBitmap(ret, 0, 0, (int)ret.getWidth(), (int)ret.getHeight(), matrix, true);
-    		    	matrix.reset();
-    		    	float lowx = newo[0];
-    		    	float lowy = newo[1];
-    		    	for(int i = 1; i < 4; ++i)
-    		    	{
-    		    		if(lowx > newo[i * 2])
-    		    		{
-    		    			lowx = newo[i * 2];
-    		    		}
-
-    		    		if(lowy > newo[i * 2 + 1])
-    		    		{
-    		    			lowy = newo[i * 2 + 1];
-    		    		}
-    		    	}
-    		    	ret = Bitmap.createBitmap(ret, -1 * (int)lowx, -1 * (int)lowy, (int)w, (int)h, matrix, true);
-    		    }
-    		    catch(OutOfMemoryError err)
-    		    {
-    		    } 
-    		    /*
-    		    int nw = ret.getWidth();
-    		    int nh = ret.getHeight();
-    		     */
+    			Bitmap ret = m_imageView.getInteraction().getCroppedBitmap();
     		    Message msg = m_handler.obtainMessage(0, ret);
     		    m_handler.sendMessage(msg);
     		}
@@ -752,4 +698,86 @@ public class PreviewActivity extends Activity {
     	return u;
 	}
 	*/
+
+	class RotateThread implements Runnable
+	{
+		private float m_angle = 0.0f;
+		public RotateThread(float a)
+		{
+			m_angle = a;
+		}
+        @Override
+        public void run()
+        {
+        	Bitmap bm = null;
+            int result = 1;
+    		Matrix m = new Matrix();
+    		m.reset();
+    		m.postRotate((float)(m_angle / Math.PI * 180));
+    		try
+    		{
+    			Bitmap ret = Bitmap.createBitmap(m_gray, 0, 0, m_gray.getWidth(), m_gray.getHeight(), m, true);
+    			bm = ret;
+    		}
+    		catch(OutOfMemoryError e)
+    		{
+    			bm = null;
+    		}	
+            
+            Message msg = m_handler.obtainMessage(result, bm);
+            m_handler.sendMessage(msg);
+        }
+	}
+
+	protected void showEditDialog()
+    {    
+        final String[] shorts = new String[4];
+        
+        shorts[0] = getResources().getString(R.string.rotate_left);
+        shorts[1] = getResources().getString(R.string.rotate_right);
+        shorts[2] = getResources().getString(R.string.regular_crop);
+        shorts[3] = getResources().getString(R.string.perspective_crop);
+        
+        final AlertDialog.Builder ad = new AlertDialog.Builder(this);
+        ad.setTitle(R.string.please_select);
+        // define the alert dialog with the choices and the action to take
+        // when one of the choices is selected
+        ad.setSingleChoiceItems(shorts, 0, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            	float a = 0;
+        		if(which == 2)
+        		{
+        			m_imageView.setInteraction(new RegularInteraction(m_imageView));
+        			m_imageView.setImage(m_gray);
+            		m_imageView.startCrop();
+        			dialog.dismiss();
+        			return;
+        		}
+
+        		if(which == 3)
+        		{
+        			m_imageView.setInteraction(new PerspectiveInteraction(m_imageView));
+        			m_imageView.setImage(m_gray);
+            		m_imageView.startCrop();
+        			dialog.dismiss();
+        			return;
+        		}
+        		m_progress = ProgressDialog.show(PreviewActivity.this, "", getString(R.string.loading));
+            	if(which == 0)
+            	{
+            		a = (float) (Math.PI / 2.0);
+            	}
+            	else if(which == 1)
+            	{
+            		a = (float) (Math.PI * 3.0 / 2.0);
+            	}
+		    	Thread t = new Thread(new RotateThread(a));
+		    	t.start();
+		    	dialog.dismiss();
+            }
+        });
+        AlertDialog dlg = ad.create();
+        dlg.show();
+    }
 }

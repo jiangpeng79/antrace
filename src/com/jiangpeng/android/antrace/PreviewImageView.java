@@ -1,13 +1,10 @@
 package com.jiangpeng.android.antrace;
 
+import com.jiangpeng.android.antrace.Objects.ImageInteraction;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.PointF;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
@@ -16,47 +13,22 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 
 public class PreviewImageView extends ImageView {
-	public enum HitTestResult
-	{
-		Top,
-		Bottom,
-		Left,
-		Right,
-		TopLeft,
-		TopRight,
-		BottomLeft,
-		BottomRight,
-		Inside,
-		Outside,
-		None
-	};
-    static final int NONE = 0;
-    static final int DRAG = 1;
-    static final int ZOOM = 2;
-    static final int ZOOM_SELECTION = 4;
-    static final int DRAG_SELECTION = 5;
-    private Matrix m_imageToScreen = new Matrix();
-    private Matrix m_screenToImage = new Matrix();
-    private Bitmap m_bitmap = null;
-    private Paint m_paint = new Paint();
-//    private Paint m_black = new Paint();
-    private boolean m_isCropping = false;
-    private PointF m_leftTop = new PointF();
-    private PointF m_rightTop = new PointF();
-    private PointF m_leftBottom = new PointF();
-    private PointF m_rightBottom = new PointF();
-    static float HitRadius = 40f;
-    static final float MinSize = 80f;
-    private int m_mode = NONE;
-    private HitTestResult m_hitTest = HitTestResult.None;
-//    private Picture m_svgPicture = null;
-
-    // Remember some things for zooming
-    private PointF m_start = new PointF();
-    private PointF m_last = new PointF();
+    private ImageInteraction m_interaction = null;
     
+    public void setInteraction(ImageInteraction interaction)
+    {
+    	m_interaction = interaction;
+    }
+    
+    public ImageInteraction getInteraction()
+    {
+    	return m_interaction;
+    }
+
     public void startCrop()
     {
+    	m_interaction.startCrop();
+    	/*
     	m_isCropping = true;
     	float w = (float)m_bitmap.getWidth();
     	float h = (float)m_bitmap.getHeight();
@@ -74,14 +46,19 @@ public class PreviewImageView extends ImageView {
     	pt = new PointF(w - w / div, h / div);
     	m_rightTop = toScreen(pt);
     	invalidate();
+    	*/
     }
     
     public void endCrop()
     {
+    	m_interaction.endCrop();
+    	/*
     	m_isCropping = false;
     	invalidate();
+    	*/
     }
 
+    /*
     private float calculateScale()
     {
         double w = m_bitmap.getWidth();
@@ -126,6 +103,7 @@ public class PreviewImageView extends ImageView {
         }
         setImageMatrix(m_imageToScreen);
     }
+    */
   
     public PreviewImageView(Context context) {
         super(context);
@@ -154,19 +132,31 @@ public class PreviewImageView extends ImageView {
     private void init(Context context)
     {
         super.setClickable(true);
+        /*
         m_imageToScreen.setTranslate(1f, 1f);
         setImageMatrix(m_imageToScreen);
         setScaleType(ScaleType.MATRIX);
+        */
+    }
+    
+    public void init()
+    {
+        m_interaction.init();
         setOnTouchListener(m_touchListener);
     }
     
     public void setImage(Bitmap bm) { 
         super.setImageBitmap(bm);
-        m_bitmap = bm;
+        if(m_interaction != null)
+        {
+        	m_interaction.setBitmap(bm);
+        }
+        /*
         if(m_bitmap != null)
         {
         	resetImagePosition();
         }
+        */
     }
 
     /*
@@ -180,7 +170,6 @@ public class PreviewImageView extends ImageView {
     	m_imageToScreen.mapPoints(ret, input);
     	return ret;
     }
-    */
 
     private PointF toScreen(PointF pt)
     {
@@ -206,7 +195,6 @@ public class PreviewImageView extends ImageView {
     	return p;
     }
 
-    /*
     private void drawPath(Canvas canvas)
     {
 		if(m_path == null)
@@ -270,17 +258,9 @@ public class PreviewImageView extends ImageView {
     @Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
+		m_interaction.draw(canvas);
+		
 		/*
-		if(m_svgPicture != null)
-		{
-			RectF rc = getImageRect();
-			m_black.setColor(Color.GRAY);
-			m_black.setStyle(Paint.Style.FILL);
-			canvas.drawRect(rc, m_black);
-			canvas.drawPicture(m_svgPicture, rc);
-			return;
-		}
-		*/
 		if(m_isCropping)
 		{
 			float[] pts = new float[16];
@@ -317,11 +297,15 @@ public class PreviewImageView extends ImageView {
 			canvas.drawCircle(m_leftBottom.x, m_leftBottom.y, radius, m_paint);
 			return;
 		}
+		*/
 	}
+
 	private OnTouchListener m_touchListener = new OnTouchListener()
     {
 		@Override
 		public boolean onTouch(View v, MotionEvent rawEvent) {
+			return m_interaction.onTouch(v, rawEvent);
+			/*
             // Handle touch events here...
             switch (rawEvent.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN:
@@ -379,9 +363,11 @@ public class PreviewImageView extends ImageView {
             }
            	invalidate();
             return true; // indicate event was handled
+		*/
 		}
     };
     
+    /*
     private HitTestResult hitTest(MotionEvent event)
     {
     	float x = event.getX();
@@ -420,22 +406,22 @@ public class PreviewImageView extends ImageView {
     
     public PointF getLeftTop()
     {
-    	return toBitmap(m_leftTop);
+    	return m_interaction.getLeftTop();
     }
 
     public PointF getRightTop()
     {
-    	return toBitmap(m_rightTop);
+    	return m_interaction.getRightTop();
     }
 
     public PointF getRightBottom()
     {
-    	return toBitmap(m_rightBottom);
+    	return m_interaction.getRightBottom();
     }
 
     public PointF getLeftBottom()
     {
-    	return toBitmap(m_leftBottom);
+    	return m_interaction.getLeftBottom();
     }
     
     private RectF getImageRect()
@@ -510,4 +496,5 @@ public class PreviewImageView extends ImageView {
     		m_leftBottom = correctPoint(rc, m_leftBottom);
     	}
     }
+    */
 }
