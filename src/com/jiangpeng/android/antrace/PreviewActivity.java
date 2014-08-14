@@ -62,6 +62,7 @@ public class PreviewActivity extends Activity {
     public static int TYPE_DXF = 2;
     public static int TYPE_PDF = 3;
     private int m_state = STATE_START;
+    private boolean m_isCropping = false;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -122,40 +123,17 @@ public class PreviewActivity extends Activity {
 		public void onClick(View v) {
 			if(m_state == STATE_LOADED)
 			{
+		       	if(m_isCropping)
+		       	{
+		       		m_ok.setText(R.string.edit);
+		       		m_cancel.setText(R.string.next);
+		       		m_imageView.endCrop();
+		       		m_isCropping = false;
+		       		return;
+		       	}
 				showEditDialog();
-				/*
-				m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
-				Thread t = new Thread(new CropThread());
-				t.start();
-				*/
 				return;
 			}
-			/*
-			if(m_state == STATE_EDITED)
-			{
-		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
-				Thread t = new Thread(new GrayscaleThread());
-				t.start();
-				m_ok.setText(R.string.next);
-				return;
-			}
-			*/
-			/*
-			if(m_state == STATE_MONO)
-			{
-				m_thresholdSeek.setVisibility(View.INVISIBLE);
-		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
-				Thread t = new Thread(new TraceThread());
-				t.start();
-				m_ok.setText(R.string.save);
-				return;
-			}
-			if(m_state == STATE_TRACE)
-			{
-				showSaveDialog();
-				return;
-			}
-			*/
 			finish();
 		}
 	};
@@ -167,10 +145,22 @@ public class PreviewActivity extends Activity {
 			if(m_state == STATE_LOADED)
 			{
 		       	m_progress = ProgressDialog.show(PreviewActivity.this, getResources().getString(R.string.empty), getResources().getString(R.string.loading), true);	
-				Thread t = new Thread(new GrayscaleThread());
-				m_ok.setText(R.string.quit);
-				t.start();
-				m_state = STATE_EDITED;
+		       	if(m_isCropping)
+		       	{
+		       		Thread t = new Thread(new CropThread());
+		       		m_ok.setText(R.string.edit);
+		       		m_cancel.setText(R.string.next);
+		       		m_imageView.endCrop();
+		       		t.start();
+		       		m_isCropping = false;
+		       	}
+		       	else
+		       	{
+		       		Thread t = new Thread(new GrayscaleThread());
+		       		m_ok.setText(R.string.quit);
+		       		t.start();
+		       		m_state = STATE_EDITED;
+		       	}
 				return;
 			}
 			if(m_state == STATE_EDITED)
@@ -751,6 +741,9 @@ public class PreviewActivity extends Activity {
         			m_imageView.setInteraction(new RegularInteraction(m_imageView));
         			m_imageView.setImage(m_gray);
             		m_imageView.startCrop();
+            		m_ok.setText(android.R.string.cancel);
+            		m_cancel.setText(R.string.crop);
+            		m_isCropping = true;
         			dialog.dismiss();
         			return;
         		}
@@ -760,6 +753,9 @@ public class PreviewActivity extends Activity {
         			m_imageView.setInteraction(new PerspectiveInteraction(m_imageView));
         			m_imageView.setImage(m_gray);
             		m_imageView.startCrop();
+            		m_ok.setText(android.R.string.cancel);
+            		m_cancel.setText(R.string.crop);
+            		m_isCropping = true;
         			dialog.dismiss();
         			return;
         		}
