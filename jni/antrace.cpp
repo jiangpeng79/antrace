@@ -906,7 +906,10 @@ JNIEXPORT jobject JNICALL Java_com_jiangpeng_android_antrace_Utils_traceImage(JN
     	{
     		jfieldID fid = env->GetFieldID(cls, "next", "Lcom/jiangpeng/android/antrace/Objects/path;");
     		env->SetObjectField(prev, fid, path);
-    		env->DeleteLocalRef(prev);
+    		if(prev != retPath && prev != 0)
+    		{
+    			env->DeleteLocalRef(prev);
+    		}
     	}
     	prev = path;
     }
