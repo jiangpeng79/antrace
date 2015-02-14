@@ -268,10 +268,6 @@ public class PerspectiveInteraction extends ImageInteraction {
 	    {
 	    	ret = Bitmap.createBitmap(m_bitmap, (int)l, (int)t, (int)(r - l), (int)(b - t), matrix, true);
 
-	    	float[] o = new float[]
-	    			{
-	    			0, 0, ret.getWidth(), 0, ret.getWidth(), ret.getHeight(), 0, ret.getHeight()
-	    			};
 	    	src = new float[] {
 	    			getLeftTop().x - l,
 	    			getLeftTop().y - t,
@@ -282,10 +278,15 @@ public class PerspectiveInteraction extends ImageInteraction {
 	    			getLeftBottom().x - l,
 	    			getLeftBottom().y - t
 	    	};
-	    	float[] newo = new float[8];
 	    	matrix.setPolyToPoly(src, 0, dst, 0, 4);
-	    	matrix.mapPoints(newo, o);
 	    	ret = Bitmap.createBitmap(ret, 0, 0, (int)ret.getWidth(), (int)ret.getHeight(), matrix, true);
+
+	    	float[] o = new float[]
+	    			{
+	    			0, 0, ret.getWidth(), 0, ret.getWidth(), ret.getHeight(), 0, ret.getHeight()
+	    			};
+	    	float[] newo = new float[8];
+	    	matrix.mapPoints(newo, o);
 	    	matrix.reset();
 	    	float lowx = newo[0];
 	    	float lowy = newo[1];

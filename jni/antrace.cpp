@@ -750,11 +750,13 @@ jobject createCurve(JNIEnv* env, potrace_curve_t* c)
 	env->SetObjectField(ret, fid, tags);
 	env->DeleteLocalRef(tags);
 	
+	// the class is com.jiangpeng.android.antrace.Objects.dpoint
 	jclass dptcls = env->FindClass("com/jiangpeng/android/antrace/Objects/dpoint");
-//	jobject newDPt = createDummyDPoint(env);
-//	jobjectArray initarr = env->NewObjectArray(3, cls, newDPt);
+	// one dimension array
 	jclass d1cls = env->FindClass("[Lcom/jiangpeng/android/antrace/Objects/dpoint;");
+	// two dimension array object
 	jobjectArray arr = env->NewObjectArray(c->n, d1cls, 0);
+	// fill arrays
 	for(int i = 0; i < c->n; ++i)
 	{
 		jobjectArray ptarr = env->NewObjectArray(3, dptcls, 0);
@@ -767,8 +769,10 @@ jobject createCurve(JNIEnv* env, potrace_curve_t* c)
 		env->SetObjectArrayElement(arr, i, ptarr);
 		env->DeleteLocalRef(ptarr);
 	}
+	// set field with arr, note the last string parameter, ret is the object we created, crvcls is class type
 	fid = env->GetFieldID(crvcls, "c", "[[Lcom/jiangpeng/android/antrace/Objects/dpoint;");
 	env->SetObjectField(ret, fid, arr);
+	// do not forget delete local references
 	env->DeleteLocalRef(dptcls);
 	env->DeleteLocalRef(arr);
 	env->DeleteLocalRef(d1cls);

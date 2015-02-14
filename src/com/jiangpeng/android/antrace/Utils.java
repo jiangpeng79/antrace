@@ -5,6 +5,8 @@ import com.jiangpeng.android.antrace.Objects.path;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.util.DisplayMetrics;
+import android.view.WindowManager;
 
 public class Utils {
 	public static native void threshold(Bitmap input, int t, Bitmap output);
@@ -37,4 +39,20 @@ public class Utils {
         android.content.pm.PackageInfo pi = getPackageInfo(context);
         return pi == null ? "0.0" : pi.versionName;
 	}
+
+	public static DisplayMetrics getDisplayMetrics(Context context)
+	{
+	    DisplayMetrics metrics = new DisplayMetrics();
+	    WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
+	    wm.getDefaultDisplay().getMetrics(metrics); 
+	    
+	    return metrics;
+	}
+	
+    public static int getDPI(Context context)
+    {
+	    DisplayMetrics metrics = getDisplayMetrics(context);
+	    return metrics.densityDpi;
+    }
+   
 }

@@ -1,5 +1,7 @@
 package com.jiangpeng.android.antrace.Objects;
 
+import com.jiangpeng.android.antrace.Utils;
+
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -56,6 +58,7 @@ public abstract class ImageInteraction {
     public ImageInteraction(ImageView view)
     {
     	m_imageView = view;
+    	HitRadius = Utils.getDPI(view.getContext()) / 7;
     }
     
     protected RectF generateRect(PointF center, float radiusX, float radiusY)
