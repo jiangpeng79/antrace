@@ -50,10 +50,10 @@ public class MainActivity extends Activity {
         OnClickListener aboutListener = new AboutListener();
         m_about.setOnClickListener(aboutListener);
 
-		m_photoFile = FileUtils.getRootFolder() + FileUtils.sep + FileUtils.TEMP_FOLDER + FileUtils.sep + PHOTO_FILE_TEMP_;
-		FileUtils.checkAndCreateFolder(FileUtils.getRootFolder() + FileUtils.sep + FileUtils.TEMP_FOLDER);
+		m_photoFile = FileUtils.getCacheDir(this) + FileUtils.sep + PHOTO_FILE_TEMP_;
+		FileUtils.checkAndCreateFolder(FileUtils.getCacheDir(this));
 
-		String svgFile = FileUtils.tempSvgFile();
+		String svgFile = FileUtils.tempSvgFile(this);
         File file = new File(svgFile);
         file.delete();
 

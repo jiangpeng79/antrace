@@ -300,6 +300,7 @@ int page_svg(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo) {
   fprintf(fout, "<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"\n");
   fprintf(fout, " width=\"%fpt\" height=\"%fpt\" viewBox=\"0 0 %f %f\"\n", 
 	  bboxx, bboxy, bboxx, bboxy);
+  fprintf(fout, " style=\"background-color:black;\"\n");
   fprintf(fout, " preserveAspectRatio=\"xMidYMid meet\">\n");
 
   /* metadata: creator */

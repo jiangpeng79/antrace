@@ -6,7 +6,6 @@
 #include <getopt.h>
 #include <math.h>
 
-#include "potrace/main.h"
 #include "potrace/potracelib.h"
 #include "potrace/backend_pdf.h"
 #include "potrace/backend_eps.h"
@@ -1359,7 +1358,7 @@ void initInfo(char const* filetype)
     info.unit = 10;
     info.compress = 1;
     info.pslevel = 2;
-    info.color = 0x000000;
+    info.color = 0xffffff;
     info.gamma = 2.2;
     /*
     info.param = potrace_param_default();
@@ -1371,9 +1370,9 @@ void initInfo(char const* filetype)
     info.outfile = NULL;
     info.blacklevel = 0.5;
     info.invert = 0;
-    info.opaque = 0;
+    info.opaque = 1;
     info.grouping = 1;
-    info.fillcolor = 0xffffff;
+    info.fillcolor = 0x000000;
     info.progress = 0;
     info.progress_bar = DEFAULT_PROGRESS_BAR;
 }

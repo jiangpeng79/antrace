@@ -369,7 +369,7 @@ public class PreviewActivity extends Activity {
         	        s.setSupportZoom(true);
         	        s.setBuiltInZoomControls(true);
 
-        	        String url = "file:///" + FileUtils.tempSvgFile();
+        	        String url = "file:///" + FileUtils.tempSvgFile(PreviewActivity.this);
         	        m_svgView.loadUrl(url);
         		}
         		return;
@@ -504,7 +504,7 @@ public class PreviewActivity extends Activity {
     		if(m_gray != null)
     		{
 				path p = Utils.traceImage(m_mono);
-				String svgFile = FileUtils.tempSvgFile();
+				String svgFile = FileUtils.tempSvgFile(PreviewActivity.this);
 				if(!Utils.saveSVG(svgFile, m_mono.getWidth(), m_mono.getHeight()))
 				{
 					Message msg = m_handler.obtainMessage(0, null);

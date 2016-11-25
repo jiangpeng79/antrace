@@ -4,13 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import android.media.ExifInterface;
 import android.os.Environment;
+import android.content.Context;
 
 public class FileUtils
 {
     public static String sep = "/";
     public static String png = ".png";
-    public static String TEMP_FOLDER = ".antraceTemp_"; 
-    public static String FILE_NAME = "FILE_NAME"; 
+    public static String FILE_NAME = "FILE_NAME";
 	public static boolean sdcardExists()
 	{
 	    String state = Environment.getExternalStorageState();
@@ -22,9 +22,9 @@ public class FileUtils
 		return file.exists() && file.isAbsolute() && file.canRead();
 	}
 	
-	public static String tempSvgFile()
+	public static String tempSvgFile(Context ctx)
 	{
-		return getRootFolder() + FileUtils.sep + TEMP_FOLDER + FileUtils.sep + "__temp_svg.svg";
+		return ctx.getExternalCacheDir().toString() + FileUtils.sep + "__temp_svg.svg";
 	}
 
 	public static boolean folderExists(String folder)
@@ -60,7 +60,12 @@ public class FileUtils
 		String lower = filename.toLowerCase();
 		return lower.endsWith(".bmp");
 	}
-	
+
+	public static String getCacheDir(Context ctx)
+	{
+		return ctx.getExternalCacheDir().toString();
+	}
+
     public static String getRootFolder()
     {
     	return Environment.getExternalStorageDirectory().getPath();
