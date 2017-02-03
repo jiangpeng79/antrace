@@ -10,7 +10,7 @@
     <TextView android:id="@+id/textView1" android:paddingLeft="12dp" android:paddingRight="12dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/email_author" android:textSize="14sp"></TextView>
     <TextView android:clickable="true" android:paddingLeft="12dp" android:paddingRight="12dp" android:id="@+id/textView2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:autoLink="email" android:text="@string/email_address" android:linksClickable="true" android:textSize="14sp"></TextView>
     <TextView android:id="@+id/textView3" android:paddingLeft="12dp" android:paddingRight="12dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/project_see" android:textSize="14sp"></TextView>
-    <TextView android:clickable="true" android:paddingLeft="12dp" android:paddingRight="12dp" android:id="@+id/textView3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:autoLink="web" android:text="@string/project_address" android:linksClickable="true" android:textSize="14sp"></TextView>
+    <TextView android:clickable="true" android:paddingLeft="12dp" android:paddingRight="12dp" android:id="@+id/textView4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:autoLink="web" android:text="@string/project_address" android:linksClickable="true" android:textSize="14sp"></TextView>
     </LinearLayout>
     </ScrollView>
 </LinearLayout>

@@ -21,6 +21,7 @@
     <string name="next">Next</string>
     <string name="skip">No Crop</string>
     <string name="quit">Quit</string>
+    <string name="share">Share</string>
     <string name="trace_failed">Trace failed..</string>
     <string name="save_failed">Save failed..</string>
     <string name="email_author">This app is a port and front end of potrace on Android! Any problems or suggestions please email:</string>
@@ -28,4 +29,6 @@
     <string name="project_see">This is an open source project, more information please see:</string>
     <string name="project_address">https://github.com/jiangpeng79/antrace</string>
     <string name="app_version">%1$s %2$s\n</string>
+    <string name="permission_warning">This app requires write permission to your external storage. Please grand the permission.</string>
+    <string name="permission_warning_quit">This app requires write permission to your external storage. Please grand the permission from Settings and try again.</string>
 </resources>

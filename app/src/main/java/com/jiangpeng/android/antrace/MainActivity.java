@@ -5,6 +5,8 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -14,6 +16,8 @@ import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.app.ActivityCompat;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -26,6 +30,7 @@ public class MainActivity extends Activity {
     private static int CAMERA_STATUS_CODE = 111;
     private static int EDIT_IMAGE_CODE = 122;
     private static int SELECT_PHOTO = 100;
+	private static int REQUEST_PERMISSION = 133;
     public static String PHOTO_FILE_TEMP_ = "__antrace.jpg";
 
 	Button m_takePicture = null;
@@ -40,10 +45,10 @@ public class MainActivity extends Activity {
 		m_takePicture = (Button)findViewById(R.id.take_picture);
 		m_selectPicture = (Button)findViewById(R.id.select_picture);
 		m_about = (Button)findViewById(R.id.about);
-		
+
         OnClickListener takeListener = new TakePictureListener();
         m_takePicture.setOnClickListener(takeListener);
-        
+
         OnClickListener selectListener = new SelectPictureListener();
         m_selectPicture.setOnClickListener(selectListener);
 
@@ -65,8 +70,34 @@ public class MainActivity extends Activity {
         AdRequest request = (new AdRequest.Builder()).build();
         layout.addView(m_adView);
         m_adView.loadAd(request);
+		if (PackageManager.PERMISSION_GRANTED != ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+		{
+			if (!ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+			{
+				showMessageDialog(R.string.permission_warning_quit,
+						new DialogInterface.OnClickListener() {
+							@Override
+							public void onClick(DialogInterface dialog, int which) {
+								ActivityCompat.requestPermissions(MainActivity.this,
+										new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE},
+										REQUEST_PERMISSION);
+							}
+						});
+				return;
+			}
+			ActivityCompat.requestPermissions(MainActivity.this,
+					new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE},
+					REQUEST_PERMISSION);
+			return;
+		}
 	}
-
+	private void showMessageDialog(int str, DialogInterface.OnClickListener okListener) {
+		new AlertDialog.Builder(MainActivity.this)
+				.setMessage(str)
+				.setPositiveButton("OK", okListener)
+				.create()
+				.show();
+	}
 	@Override
 	protected void onDestroy() {
 		m_adView.destroy();
@@ -78,7 +109,23 @@ public class MainActivity extends Activity {
 		m_adView.pause();
 		super.onPause();
 	}
-
+	@Override
+	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+		if (requestCode == REQUEST_PERMISSION)
+		{
+			if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+			} else {
+				showMessageDialog(R.string.permission_warning,
+						new DialogInterface.OnClickListener() {
+							@Override
+							public void onClick(DialogInterface dialog, int which) {
+								MainActivity.this.finish();
+							}
+						});
+				return;
+			}
+		}
+	}
 	@Override
 	protected void onResume() {
 		m_adView.resume();
@@ -110,7 +157,7 @@ public class MainActivity extends Activity {
           	    t.show();
            	}
         }
-    } 
+    }
 
     class SelectPictureListener implements OnClickListener
     {
@@ -119,10 +166,10 @@ public class MainActivity extends Activity {
         {
         	Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
         	photoPickerIntent.setType("image/*");
-        	startActivityForResult(photoPickerIntent, SELECT_PHOTO);   
+        	startActivityForResult(photoPickerIntent, SELECT_PHOTO);
         }
     }
-    
+
     class AboutListener implements OnClickListener
     {
         @Override
@@ -149,7 +196,7 @@ public class MainActivity extends Activity {
         	dialog.show();
         }
     }
-	
+
     static {
         System.loadLibrary("antrace");
     }
@@ -168,19 +215,24 @@ public class MainActivity extends Activity {
             String[] filePathColumn = {MediaStore.Images.Media.DATA};
 
             Cursor cursor = getContentResolver().query(selectedImage, filePathColumn, null, null, null);
+			if(cursor == null)
+			{
+				super.onActivityResult(requestCode, resultCode, intent);
+				return;
+			}
             cursor.moveToFirst();
 
             int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
             String filePath = cursor.getString(columnIndex);
             cursor.close();
-            
+
             launchPreviewActivity(filePath);
         }
         super.onActivityResult(requestCode, resultCode, intent);
 	}
-	
+
 	protected void launchPreviewActivity(String filename) {
-		Intent i = new Intent();	    
+		Intent i = new Intent();
 		i.setClass(MainActivity.this, PreviewActivity.class);
 	    i.putExtra(PreviewActivity.FILENAME, filename);
 	    startActivityForResult(i, EDIT_IMAGE_CODE);
