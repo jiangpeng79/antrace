@@ -74,7 +74,7 @@ public class MainActivity extends Activity {
 		{
 			if (!ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE))
 			{
-				showMessageDialog(R.string.permission_warning_quit,
+				showMessageDialog(R.string.permission_warning,
 						new DialogInterface.OnClickListener() {
 							@Override
 							public void onClick(DialogInterface dialog, int which) {
@@ -115,7 +115,7 @@ public class MainActivity extends Activity {
 		{
 			if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 			} else {
-				showMessageDialog(R.string.permission_warning,
+				showMessageDialog(R.string.permission_warning_quit,
 						new DialogInterface.OnClickListener() {
 							@Override
 							public void onClick(DialogInterface dialog, int which) {
